@@ -8,10 +8,10 @@
       </SelectionState>
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-08-30T04:45:18.580485400Z">
+        <DropdownSelection timestamp="2026-10-05T02:00:02.506658700Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=D:\AndroidAVDs\RG_ROTATE.avd" />
+              <DeviceId pluginId="PhysicalDevice" identifier="serial=ROTATE01523130" />
             </handle>
           </Target>
         </DropdownSelection>

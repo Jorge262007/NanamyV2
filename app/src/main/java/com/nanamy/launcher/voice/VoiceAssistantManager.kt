@@ -154,7 +154,7 @@ class VoiceAssistantManager(
                 put("type", "function")
                 put("function", JSONObject().apply {
                     put("name", "add_calendar_event")
-                    put("description", "Add a one-time event.")
+                    put("description", "Add a calendar event, reminder, alarm, or task. Use whenever user asks for 'reminder', 'remind me', 'set a reminder', 'set an alarm', 'notify me', 'schedule', 'recordatorio', 'recuérdame', 'avísame', 'alarma', 'cita', 'agenda'. Infer date (default today if missing) and time (e.g. 'at 5' / 'a las 5' -> '17:00').")
                     put("parameters", JSONObject().apply {
                         put("type", "object")
                         put("properties", JSONObject().apply {
@@ -284,7 +284,7 @@ class VoiceAssistantManager(
                 put("type", "function")
                 put("function", JSONObject().apply {
                     put("name", "reply_to_message")
-                    put("description", "Send a reply to a specific contact or conversation. Call ONLY when explicitly commanded by user voice command.")
+                    put("description", "Send a reply to a text message from a contact. Use ONLY when explicitly asked to reply/answer a chat message (e.g. 'responde a Pedro'). NEVER use for reminders, alarms, or tasks.")
                     put("parameters", JSONObject().apply {
                         put("type", "object")
                         put("properties", JSONObject().apply {
@@ -372,7 +372,7 @@ class VoiceAssistantManager(
                 })
                 funcDeclarations.put(JSONObject().apply {
                     put("name", "add_calendar_event")
-                    put("description", "Add a one-time event.")
+                    put("description", "Add a calendar event, reminder, alarm, or task. Use whenever user asks for 'reminder', 'remind me', 'set a reminder', 'set an alarm', 'notify me', 'schedule', 'recordatorio', 'recuérdame', 'avísame', 'alarma', 'cita', 'agenda'. Infer date (default today if missing) and time (e.g. 'at 5' / 'a las 5' -> '17:00').")
                     put("parameters", JSONObject().apply {
                         put("type", "OBJECT")
                         put("properties", JSONObject().apply {
@@ -505,7 +505,7 @@ class VoiceAssistantManager(
                 })
                 funcDeclarations.put(JSONObject().apply {
                     put("name", "reply_to_message")
-                    put("description", "Send a reply to a specific contact or conversation. Call ONLY when explicitly commanded by user voice command.")
+                    put("description", "Send a reply to a text message from a contact. Use ONLY when explicitly asked to reply/answer a chat message (e.g. 'responde a Pedro'). NEVER use for reminders, alarms, or tasks.")
                     put("parameters", JSONObject().apply {
                         put("type", "OBJECT")
                         put("properties", JSONObject().apply {
@@ -565,13 +565,21 @@ class VoiceAssistantManager(
             }
 
             override fun onDone(utteranceId: String?) {
-                context.mainExecutor.execute { 
-                    onStateChanged(NanamyState.IDLE)
+                context.mainExecutor.execute {
+                    if (isWaitingForCommand) {
+                        Log.d(TAG, "TTS onDone | isWaitingForCommand is TRUE -> Automatically starting STT follow-up listening")
+                        startListening()
+                    } else {
+                        onStateChanged(NanamyState.IDLE)
+                    }
                 }
             }
 
             override fun onError(utteranceId: String?) {
-                context.mainExecutor.execute { onStateChanged(NanamyState.IDLE) }
+                context.mainExecutor.execute {
+                    isWaitingForCommand = false
+                    onStateChanged(NanamyState.IDLE)
+                }
             }
         })
     }
@@ -597,18 +605,20 @@ class VoiceAssistantManager(
 
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            
+            // Set es-ES as primary language for Spanish recognition
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, "es-ES")
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "es-ES")
             
-            val additionalLanguages = arrayOf("en-US")
-            putExtra("android.speech.extra.EXTRA_ADDITIONAL_LANGUAGES", additionalLanguages)
+            val supportedLangs = arrayOf("es-ES", "en-US")
+            putExtra("android.speech.extra.EXTRA_ADDITIONAL_LANGUAGES", supportedLangs)
             putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, false)
             
-            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_SWITCH_ALLOWED_LANGUAGES, supportedLangs)
             }
             
             // Standard silence timeouts for push-to-talk hold
@@ -665,7 +675,7 @@ class VoiceAssistantManager(
             val messages = JSONArray()
             messages.put(JSONObject().apply {
                 put("role", "system")
-                put("content", NanamyVoiceConfig.getFullSystemPrompt(context))
+                put("content", NanamyVoiceConfig.getFullSystemPrompt(context, detectedInputLanguage))
             })
             conversationHistory.forEach { messages.put(it) }
             messages.put(JSONObject().apply {
@@ -726,7 +736,7 @@ class VoiceAssistantManager(
         val apiKey = keys[keyIndex]
         val systemInstruction = JSONObject().apply {
             put("parts", JSONArray().apply {
-                put(JSONObject().apply { put("text", NanamyVoiceConfig.getFullSystemPrompt(context)) })
+                put(JSONObject().apply { put("text", NanamyVoiceConfig.getFullSystemPrompt(context, detectedInputLanguage)) })
             })
         }
 
@@ -1023,40 +1033,42 @@ class VoiceAssistantManager(
 
     private fun addCalendarEvent(args: JSONObject): String {
         return try {
-            val title = args.getString("title")
-            if (isGenericTitle(title)) {
-                return "error: generic title detected ('$title'). You must ask the user for a specific title (e.g., 'Meeting with whom?' or 'Appointment for what?') before scheduling. Titles like 'Cita urgente' are still considered generic."
+            val title = args.optString("title", "Recordatorio").trim().ifBlank { "Recordatorio" }
+            val rawDate = args.optString("date", "")
+            val date = if (rawDate.isNotBlank()) {
+                try { LocalDate.parse(rawDate) } catch (_: Exception) { LocalDate.now() }
+            } else {
+                LocalDate.now()
             }
-            val date = LocalDate.parse(args.getString("date"))
+
             val allday = args.optBoolean("allday", !args.has("time"))
-            val time = if (allday || !args.has("time")) null else LocalTime.parse(args.getString("time"))
+            val rawTime = args.optString("time", "")
+            val time = if (allday || rawTime.isBlank()) null else try { LocalTime.parse(rawTime) } catch (_: Exception) { null }
             
-            // Robust host-side defaults: use true/10 if missing OR explicitly null/empty in some JSON variants
+            // Robust host-side defaults
             val remind = if (args.isNull("remind")) true else args.optBoolean("remind", true)
             val notifyBefore = if (args.isNull("notify_before")) 10 else args.optInt("notify_before", 10)
 
-            Log.d(TAG, "Tool Call add_calendar_event: title=$title, remind=$remind, notify=$notifyBefore")
+            Log.d(TAG, "Tool Call add_calendar_event: title=$title, date=$date, time=$time, remind=$remind, notify=$notifyBefore")
 
             val entry = CalendarEntry(title, date, time, allday, remind, notifyBefore)
             calendarParser.appendEvent(entry)
             calendarScheduler.scheduleAlarm(entry)
             calendarViewModel.notifyCalendarChanged()
-            "success: event '$title' scheduled (remind=$remind, notify=$notifyBefore)"
+            "success: event '$title' scheduled for $date ${time ?: ""} (remind=$remind, notify=$notifyBefore)"
         } catch (e: Exception) {
+            Log.e(TAG, "Error in addCalendarEvent: ${e.message}", e)
             "error: ${e.message}"
         }
     }
 
     private fun addRecurringEvent(args: JSONObject): String {
         return try {
-            val title = args.getString("title")
-            if (isGenericTitle(title)) {
-                return "error: generic title detected ('$title'). You must ask the user for a specific title."
-            }
+            val title = args.optString("title", "Recordatorio").trim().ifBlank { "Recordatorio" }
             val allday = args.optBoolean("allday", !args.has("time"))
-            val time = if (allday || !args.has("time")) null else LocalTime.parse(args.getString("time"))
+            val rawTime = args.optString("time", "")
+            val time = if (allday || rawTime.isBlank()) null else try { LocalTime.parse(rawTime) } catch (_: Exception) { null }
             
-            // Robust host-side defaults
             val remind = if (args.isNull("remind")) true else args.optBoolean("remind", true)
             val notifyBefore = if (args.isNull("notify_before")) 10 else args.optInt("notify_before", 10)
 
@@ -1064,15 +1076,16 @@ class VoiceAssistantManager(
 
             val entry = CalendarEntry(
                 title, LocalDate.MIN, time, allday, remind, notifyBefore,
-                isRecurring = true, recurringDay = args.getString("day"), 
-                recurringStart = LocalDate.parse(args.getString("start")), 
-                recurringEnd = LocalDate.parse(args.getString("end"))
+                isRecurring = true, recurringDay = args.optString("day", "Monday"), 
+                recurringStart = try { LocalDate.parse(args.optString("start")) } catch (_: Exception) { LocalDate.now() }, 
+                recurringEnd = try { LocalDate.parse(args.optString("end")) } catch (_: Exception) { LocalDate.now().plusYears(1) }
             )
             calendarParser.appendRecurring(entry)
             calendarScheduler.scheduleAlarm(entry)
             calendarViewModel.notifyCalendarChanged()
-            "success: recurring added (remind=$remind, notify=$notifyBefore)"
+            "success: recurring added for $title (remind=$remind, notify=$notifyBefore)"
         } catch (e: Exception) {
+            Log.e(TAG, "Error in addRecurringEvent: ${e.message}", e)
             "error: ${e.message}"
         }
     }
@@ -1550,15 +1563,26 @@ class VoiceAssistantManager(
         val pattern = Pattern.compile("^\\[LANG:(es|en)]", Pattern.CASE_INSENSITIVE)
         val matcher = pattern.matcher(speechCandidate)
 
-        var language = "es"
+        var language = detectedInputLanguage
         var cleanText = speechCandidate
 
         if (matcher.find()) {
-            language = matcher.group(1)?.lowercase(Locale.ROOT) ?: "es"
+            language = matcher.group(1)?.lowercase(Locale.ROOT) ?: detectedInputLanguage
             cleanText = speechCandidate.substring(matcher.end()).trim()
         }
 
-        Log.d(TAG, "Parsed language: $language, Clean text: $cleanText")
+        // Check for explicit [Follow] or [Follow-up] tag from System Prompt
+        val hasFollowTag = cleanText.contains("[Follow]", ignoreCase = true) || 
+                           cleanText.contains("[Follow-up]", ignoreCase = true) ||
+                           content.contains("[Follow]", ignoreCase = true) || 
+                           content.contains("[Follow-up]", ignoreCase = true)
+
+        isWaitingForCommand = hasFollowTag
+
+        // Strip [Follow] and [Follow-up] tags so TTS does not pronounce them
+        cleanText = cleanText.replace(Regex("\\[Follow(-up)?]", RegexOption.IGNORE_CASE), "").trim()
+
+        Log.d(TAG, "Parsed language: $language, Clean text: '$cleanText', isWaitingForCommand: $isWaitingForCommand")
         currentTtsLanguage = language
         speak(cleanText)
     }
@@ -1648,27 +1672,10 @@ class VoiceAssistantManager(
             else -> "UNKNOWN ($error)"
         }
         
-        Log.e(TAG, "onError | Error: $errorMsgStr")
+        Log.d(TAG, "onError | Error: $errorMsgStr ($error) -> Silently stopping mic and returning to IDLE")
         isListening = false
+        isWaitingForCommand = false
         onStateChanged(NanamyState.IDLE)
-        
-        val errorMsg = when(error) {
-            1 -> "Error de red (Timeout)"
-            2 -> "Sin red. Necesitas internet o paquetes de voz offline."
-            3 -> "Error de audio"
-            4 -> "Error del servidor"
-            5 -> "Error del cliente"
-            6 -> "Tiempo de escucha agotado"
-            7 -> "No se entendió nada"
-            8 -> "Reconocedor ocupado"
-            9 -> "Sin permisos de micrófono"
-            13 -> "Idioma no soportado para modo offline (Error 13)"
-            else -> "Error desconocido ($error)"
-        }
-        
-        context.mainExecutor.execute {
-            speak("[RESPONSE][LANG:es]$errorMsg[/RESPONSE]")
-        }
     }
 
     private fun isHotwordMatch(heardText: String, hotword: String): Boolean {
@@ -1726,15 +1733,50 @@ class VoiceAssistantManager(
         // Simplest flow: Process the best match and go back to IDLE
         isListening = false
         isWaitingForCommand = false
-        processHeardText(matches[0])
+        val bestText = selectBestMatchAndDetectLanguage(matches)
+        processUserText(bestText)
     }
 
-    private fun processHeardText(text: String) {
-        detectedInputLanguage = "es"
-        if (text.contains(Regex("\\b(the|and|you|is|it|to|of)\\b", RegexOption.IGNORE_CASE))) {
-            detectedInputLanguage = "en"
+    private fun selectBestMatchAndDetectLanguage(matches: List<String>): String {
+        var bestText = matches[0]
+        var maxScore = -100
+
+        val englishRegex = Regex(
+            "\\b(the|a|an|i|you|he|she|it|we|they|my|your|his|her|its|our|their|this|that|these|those|is|are|am|was|were|be|been|being|have|has|had|do|does|did|will|would|shall|should|can|could|may|might|must|what|where|when|why|how|who|which|and|or|but|if|in|on|at|to|for|with|from|by|about|of|out|up|down|open|play|stop|create|delete|set|get|show|call|text|message|help|now|time|date|weather|music|note|calendar|record|recorded)\\b",
+            RegexOption.IGNORE_CASE
+        )
+
+        val spanishRegex = Regex(
+            "\\b(el|la|los|las|un|una|unos|unas|yo|tú|él|ella|usted|nosotros|vosotros|ellos|ellas|mi|tu|su|nuestro|vuestro|este|esta|esto|estos|estas|ese|esa|eso|esos|esas|aquel|aquella|es|son|soy|eres|somos|está|están|estoy|estás|estamos|fue|fueron|era|éramos|haber|hay|había|hacer|hace|hizo|hacen|tener|tengo|tiene|tienen|que|qué|cómo|cuándo|dónde|por|porque|para|con|sin|sobre|de|del|en|y|o|pero|si|no|sí|hola|adios|gracias|favor|porfavor|abrir|reproducir|detener|crear|borrar|eliminar|poner|llamar|mensaje|música|nota|calendario|clima|hora|fecha|ponme|pon|recordatorio|recuérdame|cita|alarma|avísame)\\b",
+            RegexOption.IGNORE_CASE
+        )
+
+        val spanishAccentsRegex = Regex("[áéíóúñ¿¡]", RegexOption.IGNORE_CASE)
+
+        for (text in matches) {
+            val enMatches = englishRegex.findAll(text).count()
+            var esMatches = spanishRegex.findAll(text).count()
+            if (spanishAccentsRegex.containsMatchIn(text)) {
+                esMatches += 3
+            }
+
+            val score = esMatches - enMatches
+            if (score > maxScore) {
+                maxScore = score
+                bestText = text
+            }
         }
-        processUserText(text)
+
+        val enScore = englishRegex.findAll(bestText).count()
+        var esScore = spanishRegex.findAll(bestText).count()
+        if (spanishAccentsRegex.containsMatchIn(bestText)) {
+            esScore += 3
+        }
+
+        detectedInputLanguage = if (esScore >= enScore) "es" else "en"
+        Log.d(TAG, "Dynamic Language Detection | text='$bestText', detectedLang='$detectedInputLanguage' (enScore=$enScore, esScore=$esScore)")
+
+        return bestText
     }
 
     private fun handleEmptyResults() {
@@ -1838,12 +1880,12 @@ class VoiceAssistantManager(
 
             val history = runBlocking { db.messageDao().getMessagesForConversation(targetConvKey) }
             val lastMsgText = history.lastOrNull { !it.isOutgoing }?.messageText ?: history.lastOrNull()?.messageText ?: ""
-            val isSpanish = lastMsgText.contains(Regex("[áéíóúñ¿¡a-z]", RegexOption.IGNORE_CASE))
+            val detectedLang = com.nanamy.launcher.messages.AiReplyGenerator.detectTextLanguage(lastMsgText)
 
             val finalReplyText = if (messageText.isNotBlank()) {
                 messageText
             } else {
-                if (isSpanish) "Sí, te respondo en un rato" else "im a bit busy right now, ill text you later"
+                if (detectedLang == "es") "Sí, te respondo en un rato" else "im a bit busy right now, ill text you later"
             }
 
             Log.d(debugTag, "replyToMessageTool | Attempting reply to targetConvKey='$targetConvKey' with finalReplyText='$finalReplyText'")
