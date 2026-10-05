@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1087596876641",
+    "project_id": "com-example-nanamylaunch-dcfb2",
+    "storage_bucket": "com-example-nanamylaunch-dcfb2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1087596876641:android:2b23aef4eb5dd3b1ad6b20",
+        "android_client_info": {
+          "package_name": "com.example.nanamylauncher"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC8W3O97HcQ0460Qa3WFLMd5dmYxXwpL8I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

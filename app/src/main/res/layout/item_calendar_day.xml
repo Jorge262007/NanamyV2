@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="64dp"
+    android:layout_margin="2dp"
+    app:cardCornerRadius="12dp"
+    app:cardBackgroundColor="#1A1A1A"
+    app:cardElevation="0dp"
+    android:clickable="true"
+    android:focusable="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="2dp">
+
+        <TextView
+            android:id="@+id/tvDayNumber"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="25"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp" />
+
+        <LinearLayout
+            android:id="@+id/llIndicators"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginTop="4dp">
+
+            <View
+                android:id="@+id/vIndicatorRemind"
+                android:layout_width="8dp"
+                android:layout_height="2dp"
+                android:background="#FF5252"
+                android:layout_marginHorizontal="1dp"
+                android:visibility="gone" />
+
+            <View
+                android:id="@+id/vIndicatorRecurring"
+                android:layout_width="8dp"
+                android:layout_height="2dp"
+                android:background="#B287FF"
+                android:layout_marginHorizontal="1dp"
+                android:visibility="gone" />
+
+            <View
+                android:id="@+id/vIndicatorNormal"
+                android:layout_width="8dp"
+                android:layout_height="2dp"
+                android:background="#4FC3F7"
+                android:layout_marginHorizontal="1dp"
+                android:visibility="gone" />
+        </LinearLayout>
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

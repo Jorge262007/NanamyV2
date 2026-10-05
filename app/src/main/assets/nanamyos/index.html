@@ -1,0 +1,3451 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<!-- NanamyOS Version: 2.2.0 -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NanamyOS</title>
+<style>
+  :root {
+    --bg: #0b0e14;
+    --bg-soft: #0f1420;
+    --surface: #161b26;
+    --surface-hover: #1d2433;
+    --border: #232b3a;
+    --accent: #00e5ff;
+    --accent-soft: rgba(0, 229, 255, 0.12);
+    --accent-glow: rgba(0, 229, 255, 0.35);
+    --green: #7cffb2;
+    --text: #e8edf4;
+    --subtext: #7e8ba0;
+    --danger: #ff4d6d;
+    --taskbar-h: 52px;
+    --font-ui: 'JetBrains Mono', 'Cascadia Code', monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    font-family: var(--font-ui);
+    color: var(--text);
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2226%22%20height%3D%2226%22%20viewBox%3D%220%200%2026%2026%22%3E%3Cpath%20d%3D%22M3%202%20L3%2021%20L8.2%2016.4%20L11.4%2023%20L14.6%2021.5%20L11.5%2015%20L18%2015%20Z%22%20fill%3D%22%230b0e14%22%20stroke%3D%22%2300e5ff%22%20stroke-width%3D%221.4%22%20stroke-linejoin%3D%22round%22/%3E%3C/svg%3E') 3 2, auto;
+  }
+
+  a, button, .icon, .fs-item, .ctx-item, .task-chip, .recent-item,
+  .win-btn, .win-back, .win-upload, .editor-save-btn, #start-btn, .modal-btn,
+  .resize-handle, [onclick], [data-clickable] {
+    cursor: url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2226%22%20height%3D%2226%22%20viewBox%3D%220%200%2026%2026%22%3E%3Cpath%20d%3D%22M3%202%20L3%2021%20L8.2%2016.4%20L11.4%2023%20L14.6%2021.5%20L11.5%2015%20L18%2015%20Z%22%20fill%3D%22%230b0e14%22%20stroke%3D%22%237cffb2%22%20stroke-width%3D%221.4%22%20stroke-linejoin%3D%22round%22/%3E%3C/svg%3E') 3 2, pointer !important;
+  }
+
+  #desktop {
+    position: relative;
+    width: 100%;
+    height: calc(100% - var(--taskbar-h));
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 18% 24%, rgba(0,229,255,0.07), transparent 38%),
+      radial-gradient(circle at 82% 76%, rgba(124,255,178,0.06), transparent 42%),
+      linear-gradient(160deg, #0b0e14 0%, #0a0d12 55%, #090b10 100%);
+  }
+
+  #desktop::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 42px 42px;
+    pointer-events: none;
+  }
+
+  .wallpaper-eyes {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex; gap: 64px;
+    pointer-events: none; opacity: 0.05;
+  }
+  .wallpaper-eyes .eye {
+    width: 180px; height: 280px;
+    border-radius: 56px;
+    background: var(--accent);
+    box-shadow: 0 0 140px 40px var(--accent-glow);
+  }
+  .wallpaper-watermark {
+    position: absolute; bottom: 22px; right: 28px;
+    font-size: 12px; letter-spacing: 0.18em;
+    color: rgba(255,255,255,0.10); pointer-events: none;
+  }
+
+  /* ── ICONOS (escalables via --icon-w/h) ── */
+  #icon-grid {
+    position: absolute;
+    top: 24px; left: 24px;
+    right: 24px;
+    height: calc(100% - 48px);
+  }
+
+  .icon {
+    position: absolute;
+    width: var(--icon-w, 110px); height: var(--icon-h, 115px);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-start;
+    gap: 10px; padding: 12px 5px;
+    border-radius: 12px; cursor: pointer;
+    transition: background-color 120ms ease, transform 80ms ease;
+  }
+  .icon:hover  { background: rgba(255,255,255,0.06); }
+  .icon:active { transform: scale(0.96); background: var(--accent-soft); }
+  .icon.selected { background: var(--accent-soft); outline: 1px solid rgba(0,229,255,0.4); }
+
+  .icon-glyph {
+    width: var(--icon-glyph-s, 55px); height: var(--icon-glyph-s, 55px);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: var(--icon-glyph-font, 25px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+  }
+  .icon:hover .icon-glyph {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .icon-label {
+    font-size: var(--icon-label-font, 12px); text-align: center;
+    color: var(--text); line-height: 1.3;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+  }
+  .icon-glyph.folder { color: var(--accent); }
+  .icon-glyph.app    { color: var(--green); }
+  .icon-glyph.trash  { color: var(--subtext); font-size: calc(var(--icon-glyph-font, 25px) * 0.88); }
+  .icon.dragging     { opacity: 0.5; z-index: 10; pointer-events: none; }
+
+  /* resalta la carpeta/ventana/escritorio que recibira el archivo al soltar */
+  [data-focuspath].drop-target {
+    outline: 2px dashed var(--accent);
+    outline-offset: -2px;
+    background: var(--accent-soft);
+  }
+
+  /* "fantasma" que sigue al mouse al arrastrar un archivo/carpeta dentro de un explorador */
+  .fs-drag-ghost {
+    position: fixed; z-index: 999999; pointer-events: none;
+    transform: translate(-50%, -50%);
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 6px 8px; border-radius: 8px;
+    background: var(--surface); border: 1px solid var(--accent);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    opacity: 0.92;
+  }
+  .fs-drag-ghost .fs-glyph { width: 32px; height: 32px; font-size: 16px; }
+  .fs-drag-ghost .fs-name  { font-size: 10px; color: var(--text); max-width: 100px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* overlay global que aparece al arrastrar archivos/carpetas DESDE el sistema
+     operativo (Windows/Linux/Mac) sobre la ventana del navegador */
+  #os-drop-overlay {
+    position: fixed; inset: 0; z-index: 999998;
+    display: none;
+    background: rgba(11, 14, 20, 0.45);
+    backdrop-filter: blur(2px);
+    pointer-events: none; /* deja pasar los dragenter/dragover/drop al elemento de abajo */
+  }
+  #os-drop-overlay.show { display: block; }
+  #os-drop-overlay .os-drop-hint {
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    padding: 22px 30px; border-radius: 14px;
+    background: var(--surface); border: 1.5px dashed var(--accent);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.55);
+    color: var(--text); font-size: 13px; text-align: center;
+  }
+  #os-drop-overlay .os-drop-hint .os-drop-icon { font-size: 30px; color: var(--accent); }
+  #os-drop-overlay .os-drop-hint .os-drop-target-name { color: var(--accent); font-weight: 600; }
+
+  /* indicador de progreso de subida (toast inferior) */
+  #upload-toast {
+    position: fixed; left: 50%; bottom: calc(var(--taskbar-h) + 16px);
+    transform: translateX(-50%);
+    z-index: 999997;
+    display: none; flex-direction: column; gap: 6px;
+    min-width: 260px; max-width: 360px;
+    padding: 12px 14px; border-radius: 10px;
+    background: var(--surface); border: 1px solid var(--border);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+  }
+  #upload-toast.show { display: flex; }
+  #upload-toast .upload-toast-label {
+    font-size: 11px; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  #upload-toast .upload-toast-bar {
+    height: 4px; border-radius: 3px; background: var(--bg-soft);
+    overflow: hidden;
+  }
+  #upload-toast .upload-toast-bar-fill {
+    height: 100%; width: 0%; background: var(--accent);
+    box-shadow: 0 0 8px var(--accent-glow);
+    transition: width 120ms ease;
+  }
+
+  /* ── START MENU ── */
+  #start-menu {
+    position: absolute; left: 10px;
+    bottom: calc(var(--taskbar-h) + 8px);
+    width: 260px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.55);
+    padding: 10px;
+    display: none; flex-direction: column; gap: 4px;
+    z-index: 9999;
+  }
+  #start-menu.show { display: flex; }
+
+  .start-menu-header { font-size: 11px; letter-spacing: 0.12em; color: var(--subtext); padding: 4px 8px 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  #fullscreen-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 6px;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--subtext); font-size: 12px; padding: 0;
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+  }
+  #fullscreen-btn:hover { background: var(--surface-hover); border-color: var(--accent); color: var(--accent); }
+
+  .recent-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px; border-radius: 7px;
+    font-size: 12px; color: var(--text); cursor: pointer;
+  }
+  .recent-item:hover { background: var(--surface-hover); }
+  .recent-item .recent-glyph {
+    width: 26px; height: 26px; border-radius: 6px;
+    background: var(--bg-soft); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; color: var(--accent); flex: none;
+  }
+  .recent-empty { padding: 14px 8px; font-size: 11px; color: var(--subtext); text-align: center; }
+  .start-menu-footer { border-top: 1px solid var(--border); margin-top: 4px; padding-top: 8px; }
+  #power-btn {
+    width: 100%; display: flex; align-items: center; gap: 10px;
+    padding: 9px 8px; border-radius: 7px;
+    background: transparent; border: none;
+    color: var(--danger); font-family: var(--font-ui);
+    font-size: 12px; cursor: pointer;
+    transition: background-color 120ms ease;
+  }
+  #power-btn:hover { background: rgba(255,77,109,0.10); }
+
+  /* --- Browser specific --- */
+  .browser-bookmarks-dropdown {
+    position: absolute;
+    top: 45px; right: 10px;
+    min-width: 220px; max-width: 350px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+    z-index: 1000;
+    display: none;
+    flex-direction: column;
+    padding: 10px 0;
+    backdrop-filter: blur(10px);
+  }
+  .browser-bookmarks-dropdown.show { display: flex; }
+  .bookmark-item {
+    padding: 8px 16px;
+    font-size: 13px;
+    color: var(--text);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+  }
+  .bookmark-item:hover { background: var(--surface-hover); color: var(--accent); }
+  .bookmark-info {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex: 1;
+  }
+  .bookmark-title { font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bookmark-url { font-size: 10px; color: var(--subtext); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bookmark-del { color: var(--danger); opacity: 0.6; padding: 4px; font-weight: bold; }
+  .bookmark-del:hover { opacity: 1; }
+
+  .win-fullscreen-os { font-size: 14px; margin-right: 2px; }
+
+  /* ── VENTANAS ── */
+  .window {
+    position: absolute;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+    display: none; flex-direction: column;
+    overflow: hidden;
+    min-width: 280px; min-height: 200px;
+  }
+  .window.show { display: flex; }
+  .window.anim-max {
+    transition: top 220ms cubic-bezier(.2,.7,.3,1), left 220ms cubic-bezier(.2,.7,.3,1),
+                width 220ms cubic-bezier(.2,.7,.3,1), height 220ms cubic-bezier(.2,.7,.3,1),
+                border-radius 220ms cubic-bezier(.2,.7,.3,1);
+  }
+  .window.anim-min {
+    transition: transform 220ms cubic-bezier(.4,0,.2,1), opacity 220ms cubic-bezier(.4,0,.2,1);
+  }
+  .window.maximized {
+    top: 0 !important; left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 0;
+  }
+  .window.os-fullscreen-mode {
+    z-index: 10000 !important;
+    border: none !important;
+  }
+  .window.os-fullscreen-mode .window-titlebar,
+  .window.os-fullscreen-mode .browser-toolbar {
+    display: none !important;
+  }
+  .window.os-fullscreen-mode .window-body {
+    border-radius: 0 !important;
+  }
+
+  .window-titlebar {
+    height: 38px; flex: none;
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 10px;
+    background: var(--bg-soft);
+    border-bottom: 1px solid var(--border);
+    cursor: move;
+  }
+  .window-titlebar .win-icon { color: var(--accent); font-size: 14px; }
+  .window-titlebar .win-title { flex: 1; font-size: 12px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .win-btn {
+    width: 22px; height: 22px; border-radius: 5px;
+    background: transparent; border: none;
+    color: var(--subtext); cursor: pointer; font-size: 13px;
+    display: flex; align-items: center; justify-content: center; flex: none;
+  }
+  .win-btn:hover { background: var(--surface-hover); color: var(--text); }
+  .win-close:hover { background: var(--danger) !important; color: #fff !important; }
+
+  .window-toolbar {
+    height: 34px; flex: none;
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .win-back {
+    width: 24px; height: 24px; border-radius: 5px;
+    background: var(--bg-soft); border: 1px solid var(--border);
+    color: var(--text); cursor: pointer; font-size: 12px;
+  }
+  .win-back:hover { border-color: var(--accent); color: var(--accent); }
+  .win-back:disabled { opacity: 0.3; cursor: default; }
+  .win-back:disabled:hover { border-color: var(--border); color: var(--text); }
+  .win-path {
+    font-size: 11px; color: var(--subtext); flex: 1;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .win-upload {
+    width: 24px; height: 24px; border-radius: 5px;
+    background: var(--bg-soft); border: 1px solid var(--border);
+    color: var(--text); cursor: pointer; font-size: 12px;
+    flex: none; display: flex; align-items: center; justify-content: center;
+  }
+  .win-upload:hover { border-color: var(--accent); color: var(--accent); }
+
+  .window-body {
+    flex: 1; overflow-y: auto; padding: 10px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, var(--fs-item-w, 97px));
+    gap: 4px; align-content: flex-start;
+  }
+
+  /* cuerpo del visor/editor (no grid) */
+  .window-body.viewer {
+    display: flex; flex-direction: column;
+    padding: 0; overflow: hidden;
+  }
+
+  .fs-item {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 6px;
+    padding: 8px 4px; border-radius: 8px; cursor: pointer;
+  }
+  .fs-item:hover { background: var(--surface-hover); }
+  .fs-glyph {
+    width: var(--fs-glyph-s, 44px); height: var(--fs-glyph-s, 44px); border-radius: 9px;
+    background: var(--bg-soft); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: var(--fs-glyph-font, 20px);
+  }
+  .fs-item.is-dir .fs-glyph  { color: var(--accent); }
+  .fs-item.is-file .fs-glyph { color: var(--subtext); }
+  .fs-name {
+    font-size: var(--fs-name-font, 11px); text-align: center;
+    color: var(--text); line-height: 1.2; word-break: break-word;
+  }
+  .fs-empty, .fs-error {
+    grid-column: 1 / -1; text-align: center;
+    font-size: 11px; color: var(--subtext); padding: 30px 0;
+  }
+  .fs-error { color: var(--danger); }
+
+  /* handle resize */
+  .resize-handle {
+    position: absolute; bottom: 0; right: 0;
+    width: 16px; height: 16px;
+    cursor: se-resize; z-index: 10;
+  }
+  .resize-handle::after {
+    content: '';
+    position: absolute; bottom: 3px; right: 3px;
+    width: 8px; height: 8px;
+    border-right: 2px solid var(--subtext);
+    border-bottom: 2px solid var(--subtext);
+    border-radius: 1px;
+  }
+
+  /* ── EDITOR DE TEXTO ── */
+  #txt-editor {
+    flex: 1; width: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    border: none; outline: none;
+    padding: 14px;
+    resize: none;
+    line-height: 1.6;
+    user-select: text;
+    -webkit-user-select: text;
+  }
+  .editor-toolbar {
+    height: 34px; flex: none;
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .editor-save-btn {
+    padding: 4px 12px; border-radius: 6px;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--font-ui);
+    font-size: 11px; cursor: pointer;
+  }
+  .editor-save-btn:hover { background: var(--accent); color: var(--bg); }
+  .editor-status {
+    font-size: 11px; color: var(--subtext); flex: 1;
+  }
+
+  /* ── VISOR MEDIA (imagen/video/audio/pdf) ── */
+  .media-container {
+    flex: 1; display: flex;
+    align-items: center; justify-content: center;
+    overflow: auto; padding: 10px; background: #000;
+  }
+  .media-container img  { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .media-container video,
+  .media-container audio { max-width: 100%; outline: none; }
+  .media-container audio { margin: auto; }
+  .media-container iframe { width: 100%; height: 100%; border: none; }
+
+  /* ── TASKBAR ── */
+  #taskbar {
+    height: var(--taskbar-h);
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 10px;
+    background: rgba(15,20,32,0.92);
+    border-top: 1px solid var(--border);
+    backdrop-filter: blur(10px);
+    position: relative; z-index: 5;
+  }
+  #start-btn {
+    display: flex; align-items: center; gap: 8px;
+    height: 38px; padding: 0 14px 0 10px;
+    border-radius: 8px;
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); font-family: var(--font-ui);
+    font-size: 13px; font-weight: 600; letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background-color 120ms ease, border-color 120ms ease;
+  }
+  #start-btn:hover { background: var(--surface-hover); border-color: var(--accent); }
+  #start-btn .dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px 2px var(--accent-glow);
+  }
+  #taskbar-divider { width: 1px; height: 26px; background: var(--border); }
+  #open-windows { flex: 1; display: flex; gap: 6px; overflow-x: auto; }
+
+  .task-chip {
+    display: flex; align-items: center; gap: 6px;
+    height: 36px; padding: 0 12px;
+    border-radius: 7px; font-size: 12px;
+    color: var(--subtext); background: transparent;
+    border: 1px solid transparent;
+    cursor: pointer; white-space: nowrap;
+    transition: background-color 120ms ease, color 120ms ease;
+    font-family: var(--font-ui);
+  }
+  .task-chip:hover { background: var(--surface); color: var(--text); }
+  .task-chip.active { background: var(--surface); border-color: var(--accent); color: var(--text); }
+  .task-chip-close {
+    margin-left: 4px; opacity: 0.5; font-size: 11px;
+    border-radius: 3px; padding: 1px 3px;
+  }
+  .task-chip-close:hover { opacity: 1; background: var(--danger); color: #fff; }
+
+  #tray {
+    display: flex; align-items: center; gap: 14px;
+    padding-right: 6px; font-size: 12px; color: var(--subtext);
+  }
+  #tray .status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--green); display: inline-block;
+    margin-right: 6px;
+    box-shadow: 0 0 6px 1px rgba(124,255,178,0.5);
+  }
+  #clock { color: var(--text); font-weight: 600; min-width: 58px; text-align: right; }
+
+  /* ── CONTEXT MENU ── */
+  #ctx-menu {
+    position: absolute; min-width: 180px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+    padding: 6px; display: none; z-index: 99999;
+  }
+  #ctx-menu.show { display: block; }
+  .ctx-item { padding: 8px 10px; font-size: 12px; border-radius: 6px; color: var(--text); cursor: pointer; }
+  .ctx-item:hover { background: var(--surface-hover); color: var(--accent); }
+  .ctx-item-danger { color: var(--danger); }
+  .ctx-item-danger:hover { background: rgba(255,77,109,0.12); color: var(--danger); }
+  .ctx-sep { height: 1px; background: var(--border); margin: 5px 4px; }
+
+  /* ── MODAL DE SISTEMA (reemplaza alert/prompt/confirm del navegador) ── */
+  #modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(5, 7, 11, 0.55);
+    backdrop-filter: blur(3px);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 999999;
+  }
+  #modal-overlay.show { display: flex; }
+
+  .sys-modal {
+    width: 320px;
+    max-width: 90vw;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 24px 70px rgba(0,0,0,0.65), 0 0 0 1px rgba(0,229,255,0.06);
+    overflow: hidden;
+    animation: modal-pop 140ms ease;
+  }
+  @keyframes modal-pop {
+    from { transform: scale(0.94); opacity: 0; }
+    to   { transform: scale(1);    opacity: 1; }
+  }
+
+  .sys-modal-bar {
+    height: 36px; flex: none;
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 10px;
+    background: var(--bg-soft);
+    border-bottom: 1px solid var(--border);
+  }
+  .sys-modal-bar .modal-icon { font-size: 14px; }
+  .sys-modal-bar .modal-icon.info  { color: var(--accent); }
+  .sys-modal-bar .modal-icon.warn  { color: #ffd166; }
+  .sys-modal-bar .modal-icon.error { color: var(--danger); }
+  .sys-modal-bar .modal-titletxt { flex: 1; font-size: 12px; color: var(--text); }
+
+  .sys-modal-body { padding: 16px 16px 6px; }
+  .sys-modal-msg {
+    font-size: 12.5px; color: var(--text);
+    line-height: 1.5; white-space: pre-wrap; word-break: break-word;
+  }
+  .sys-modal-input {
+    margin-top: 12px; width: 100%;
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 12.5px;
+    padding: 8px 10px;
+    outline: none;
+  }
+  .sys-modal-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  .sys-modal-actions {
+    display: flex; justify-content: flex-end; gap: 8px;
+    padding: 14px 16px 16px;
+  }
+  .modal-btn {
+    padding: 7px 16px; border-radius: 6px;
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    cursor: pointer;
+    transition: border-color 120ms ease, color 120ms ease, background-color 120ms ease;
+  }
+  .modal-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .modal-btn.primary {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .modal-btn.primary:hover { background: var(--accent); color: var(--bg); }
+  .modal-btn.danger { border-color: var(--danger); color: var(--danger); }
+  .modal-btn.danger:hover { background: var(--danger); color: #fff; }
+
+  /* ── APP: SETTINGS ── */
+  .settings-tab-bar {
+    display: flex; flex: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .settings-tab {
+    flex: 1; height: 38px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; cursor: pointer;
+    border-bottom: 2px solid transparent;
+    color: var(--subtext);
+    transition: color 120ms, border-color 120ms, background-color 120ms;
+    background: var(--bg-soft);
+    letter-spacing: 0.05em;
+  }
+  .settings-tab:first-child { border-right: 1px solid var(--border); }
+  .settings-tab:hover { color: var(--text); background: var(--surface-hover); }
+  .settings-tab.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--surface); }
+  .settings-body {
+    flex: 1; overflow-y: auto; padding: 16px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .settings-section-title {
+    font-size: 10px; letter-spacing: 0.16em;
+    color: var(--subtext); text-transform: uppercase;
+    padding-bottom: 6px; border-bottom: 1px solid var(--border);
+  }
+  .settings-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px; border-radius: 7px;
+    background: var(--bg-soft); border: 1px solid var(--border);
+  }
+  .settings-row-label { flex: 1; font-size: 12px; color: var(--text); }
+  .settings-row-sub { font-size: 10px; color: var(--subtext); margin-top: 2px; }
+  .settings-value { font-size: 12px; color: var(--accent); min-width: 40px; text-align: right; }
+  .settings-slider {
+    width: 110px; accent-color: var(--accent);
+  }
+  .settings-select {
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); font-family: var(--font-ui); font-size: 11px;
+    border-radius: 6px; padding: 4px 8px; cursor: pointer;
+  }
+  .settings-select:focus { border-color: var(--accent); outline: none; }
+  .settings-toggle {
+    position: relative; width: 38px; height: 20px; flex: none;
+  }
+  .settings-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+  .settings-toggle-track {
+    position: absolute; inset: 0; border-radius: 10px;
+    background: var(--border); cursor: pointer;
+    transition: background-color 180ms;
+  }
+  .settings-toggle input:checked + .settings-toggle-track { background: var(--accent); }
+  .settings-toggle-thumb {
+    position: absolute; top: 3px; left: 3px;
+    width: 14px; height: 14px; border-radius: 7px;
+    background: #fff; pointer-events: none;
+    transition: left 180ms;
+  }
+  .settings-toggle input:checked ~ .settings-toggle-thumb { left: 21px; }
+  .settings-btn {
+    padding: 5px 14px; border-radius: 6px;
+    background: var(--accent-soft); border: 1px solid var(--accent);
+    color: var(--accent); font-family: var(--font-ui); font-size: 11px; cursor: pointer;
+  }
+  .settings-btn:hover { background: var(--accent); color: var(--bg); }
+  .settings-btn.danger { background: transparent; border-color: var(--danger); color: var(--danger); }
+  .settings-btn.danger:hover { background: var(--danger); color: #fff; }
+  .settings-info-block {
+    padding: 12px; border-radius: 7px;
+    background: var(--bg-soft); border: 1px solid var(--border);
+    font-size: 11px; line-height: 1.8; color: var(--subtext);
+  }
+  .settings-info-block span { color: var(--text); }
+  .settings-placeholder {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 10px;
+    color: var(--subtext); font-size: 12px; text-align: center;
+  }
+  .settings-placeholder .ph-icon { font-size: 36px; opacity: 0.25; }
+  .settings-segment {
+    display: flex; border-radius: 9px; overflow: hidden;
+    border: 1px solid var(--border);
+    min-width: 200px;
+  }
+  .settings-segment-opt {
+    flex: 1; padding: 12px 18px; text-align: center;
+    font-size: 13px; color: var(--subtext); cursor: pointer;
+    background: var(--bg-soft);
+    transition: background-color 120ms, color 120ms;
+    border-right: 1px solid var(--border);
+  }
+  .settings-segment-opt:last-child { border-right: none; }
+  .settings-segment-opt.active { background: var(--accent-soft); color: var(--accent); }
+
+  /* ══════════════════════════════════════════════════════
+     MODO MÓVIL — se activa cuando body tiene clase .mobile
+     Pantalla vertical / ratio de teléfono detectado por JS
+  ══════════════════════════════════════════════════════ */
+
+  /* En móvil el cursor personalizado no aplica */
+  body.mobile,
+  body.mobile a, body.mobile button, body.mobile .icon,
+  body.mobile .fs-item, body.mobile .ctx-item, body.mobile .task-chip,
+  body.mobile .recent-item, body.mobile .win-btn, body.mobile .win-back,
+  body.mobile .win-upload, body.mobile .editor-save-btn,
+  body.mobile #start-btn, body.mobile .modal-btn,
+  body.mobile .resize-handle, body.mobile [onclick], body.mobile [data-clickable] {
+    cursor: auto !important;
+  }
+
+  /* Taskbar más alta y elementos más grandes al tacto */
+  body.mobile { --taskbar-h: 64px; }
+
+  body.mobile #taskbar {
+    padding: 0 14px;
+    gap: 10px;
+  }
+  body.mobile #start-btn {
+    height: 48px;
+    padding: 0 18px 0 14px;
+    font-size: 15px;
+    border-radius: 10px;
+  }
+  body.mobile #start-btn .dot {
+    width: 11px; height: 11px;
+  }
+  body.mobile .task-chip {
+    height: 44px;
+    padding: 0 16px;
+    font-size: 14px;
+    border-radius: 9px;
+  }
+  body.mobile .task-chip-close {
+    font-size: 14px;
+    padding: 2px 5px;
+  }
+  body.mobile #clock {
+    font-size: 14px;
+    min-width: 70px;
+  }
+  body.mobile #tray {
+    font-size: 13px;
+    gap: 10px;
+  }
+
+  /* Ventanas — en móvil siempre maximizadas, sin titlebar de drag */
+  body.mobile .window {
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 0 !important;
+    border: none !important;
+  }
+  body.mobile .window-titlebar {
+    height: 50px;
+    padding: 0 14px;
+    cursor: default;
+  }
+  body.mobile .window-titlebar .win-title {
+    font-size: 14px;
+  }
+  body.mobile .win-btn {
+    width: 34px; height: 34px;
+    font-size: 17px;
+    border-radius: 8px;
+  }
+  body.mobile .resize-handle { display: none; }
+
+  /* File explorer — items más grandes para el dedo */
+  body.mobile .window-toolbar {
+    height: 48px;
+    padding: 0 14px;
+    gap: 10px;
+  }
+  body.mobile .win-back,
+  body.mobile .win-upload {
+    width: 36px; height: 36px;
+    font-size: 16px;
+    border-radius: 8px;
+  }
+  body.mobile .win-path { font-size: 13px; }
+
+  body.mobile .window-body {
+    padding: 12px;
+    grid-template-columns: repeat(auto-fill, var(--fs-item-w, 120px));
+    gap: 8px;
+  }
+  body.mobile .fs-glyph {
+    width: 60px; height: 60px;
+    border-radius: 12px;
+    font-size: 28px;
+  }
+  body.mobile .fs-name { font-size: 12.5px; }
+
+  /* Iconos del escritorio — más grandes */
+  body.mobile .icon {
+    padding: 16px 6px;
+    gap: 12px;
+    border-radius: 16px;
+  }
+  body.mobile .icon-glyph {
+    width: 72px; height: 72px;
+    border-radius: 16px;
+    font-size: 34px;
+  }
+  body.mobile .icon-label { font-size: 13px; }
+
+  /* Context menu más grande */
+  body.mobile #ctx-menu { min-width: 220px; padding: 8px; }
+  body.mobile .ctx-item { padding: 14px 14px; font-size: 14px; border-radius: 8px; }
+  body.mobile .ctx-sep { margin: 6px 6px; }
+
+  /* Modales más anchos */
+  body.mobile .sys-modal { width: 90vw; max-width: 420px; }
+  body.mobile .sys-modal-bar { height: 48px; padding: 0 14px; }
+  body.mobile .sys-modal-bar .modal-titletxt { font-size: 14px; }
+  body.mobile .sys-modal-msg { font-size: 14px; }
+  body.mobile .sys-modal-input { font-size: 14px; padding: 12px 12px; }
+  body.mobile .modal-btn { padding: 11px 20px; font-size: 14px; border-radius: 8px; }
+
+  /* Start menu */
+  body.mobile #start-menu {
+    left: 10px; right: 10px; width: auto;
+    bottom: calc(var(--taskbar-h) + 10px);
+  }
+
+  /* ── NANAMY AI SIDEBAR ── */
+  #nanamy-ai-panel {
+    position: fixed; top: 0; right: -380px; bottom: var(--taskbar-h);
+    width: 380px; background: var(--surface);
+    border-left: 1px solid var(--border);
+    box-shadow: -10px 0 30px rgba(0,0,0,0.4);
+    display: flex; flex-direction: column;
+    z-index: 999990; transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  #nanamy-ai-panel.show { right: 0; }
+  .nanamy-ai-header {
+    height: 48px; padding: 0 16px;
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .nanamy-ai-title { flex: 1; font-size: 14px; font-weight: 700; color: var(--accent); letter-spacing: 0.05em; }
+  #nanamy-ai-chat { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .chat-msg { max-width: 85%; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.5; word-wrap: break-word; user-select: text; -webkit-user-select: text; }
+  .chat-msg.user { align-self: flex-end; background: var(--accent); color: #000; border-bottom-right-radius: 2px; }
+  .chat-msg.ai { align-self: flex-start; background: #1c2128; color: var(--text); border-bottom-left-radius: 2px; border: 1px solid var(--border); }
+  .nanamy-ai-input-area { padding: 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+  #nanamy-ai-input { flex: 1; background: #0d1117; border: 1px solid var(--border); border-radius: 8px; color: #fff; padding: 10px; outline: none; font-size: 13px; }
+  #nanamy-ai-input:focus { border-color: var(--accent); }
+  #nanamy-ai-send { background: var(--accent); color: #000; border: none; border-radius: 8px; padding: 0 16px; font-weight: bold; cursor: pointer; }
+  #nanamy-ai-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 38px; height: 38px; border-radius: 8px;
+    background: transparent; border: 1px solid transparent;
+    color: #fff;
+    cursor: pointer; font-size: 18px; transition: 0.2s;
+  }
+  #nanamy-ai-btn:hover { background: var(--surface-hover); border-color: var(--accent); }
+  #nanamy-ai-btn.active { color: var(--accent); background: var(--surface); border-color: var(--accent); }
+
+  body.mobile #nanamy-ai-panel { width: 100vw; right: -100vw; }
+  body.mobile .recent-item { padding: 12px 10px; font-size: 14px; }
+  body.mobile .recent-item .recent-glyph { width: 34px; height: 34px; font-size: 16px; }
+  body.mobile #power-btn { padding: 14px 10px; font-size: 14px; }
+
+  /* Badge indicador de modo móvil en el tray */
+  #mobile-badge {
+    display: none;
+    font-size: 13px; color: var(--accent);
+    opacity: 0.7;
+  }
+  body.mobile #mobile-badge { display: inline; }
+</style>
+</head>
+<body>
+
+<div id="desktop" data-focuspath="/Desktop">
+  <div class="wallpaper-eyes"><div class="eye"></div><div class="eye"></div></div>
+  <div class="wallpaper-watermark">NANAMYOS</div>
+
+  <div id="icon-grid"></div>
+</div>
+
+<!-- plantilla de ventana, se clona por JS -->
+<template id="tpl-window">
+  <div class="window">
+    <div class="window-titlebar">
+      <span class="win-icon">▤</span>
+      <span class="win-title" data-i18n="win.default">Ventana</span>
+      <button class="win-btn win-minimize" data-i18n-title="win.minimize" title="Minimizar">─</button>
+      <button class="win-btn win-maximize" data-i18n-title="win.maximize" title="Maximizar">□</button>
+      <button class="win-btn win-close"    data-i18n-title="win.close" title="Cerrar">✕</button>
+    </div>
+    <div class="resize-handle"></div>
+  </div>
+</template>
+
+<div id="nanamy-ai-panel">
+  <div class="nanamy-ai-header">
+    <span class="nanamy-ai-title">NANAMY AI</span>
+    <button class="win-btn" onclick="toggleNanamyAi()">✕</button>
+  </div>
+  <div id="nanamy-ai-chat"></div>
+  <div class="nanamy-ai-input-area">
+    <input type="text" id="nanamy-ai-input" data-i18n-placeholder="ai.placeholder" placeholder="Escribe un mensaje..." autocomplete="off">
+    <button id="nanamy-ai-send">➤</button>
+  </div>
+</div>
+
+<div id="start-menu">
+  <div class="start-menu-header">
+    <span data-i18n="start.recent">RECIENTES</span>
+    <button id="fullscreen-btn" title="Fullscreen">⛶</button>
+  </div>
+  <div id="recent-list"><div class="recent-empty" data-i18n="start.recentEmpty">Nada abierto todavia</div></div>
+  <div class="start-menu-footer">
+    <button id="power-btn" data-i18n="start.power">⏻ Apagar NanamyOS</button>
+  </div>
+</div>
+
+<div id="taskbar">
+  <button id="start-btn"><span class="dot"></span><span data-i18n="os.name">NanamyOS</span></button>
+  <div id="taskbar-divider"></div>
+  <div id="open-windows"></div>
+  <div id="tray">
+    <button id="nanamy-ai-btn" title="Nanamy AI">✦</button>
+    <span id="clock">--:--</span>
+    <span id="mobile-badge">📱</span>
+  </div>
+</div>
+
+<div id="ctx-menu"></div>
+
+<div id="os-drop-overlay">
+  <div class="os-drop-hint">
+    <div class="os-drop-icon">⇣</div>
+    <div data-i18n="dnd.suelta">Suelta para subir a</div>
+    <div class="os-drop-target-name" id="os-drop-target-name">/Desktop</div>
+  </div>
+</div>
+
+<div id="upload-toast">
+  <div class="upload-toast-label" id="upload-toast-label"></div>
+  <div class="upload-toast-bar"><div class="upload-toast-bar-fill" id="upload-toast-fill"></div></div>
+</div>
+
+<div id="modal-overlay">
+  <div class="sys-modal">
+    <div class="sys-modal-bar">
+      <span class="modal-icon info" id="modal-icon">ℹ</span>
+      <span class="modal-titletxt" id="modal-title">NanamyOS</span>
+    </div>
+    <div class="sys-modal-body">
+      <div class="sys-modal-msg" id="modal-msg"></div>
+      <input type="text" class="sys-modal-input" id="modal-input" style="display:none;">
+    </div>
+    <div class="sys-modal-actions" id="modal-actions"></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  ESCALADO DE LA UI SEGUN EL TAMANO REAL DE LA PANTALLA
+//  Todo el diseno (ventanas, iconos, fuentes) esta hecho en px fijos
+//  pensando en una pantalla "de referencia". Eso se ve bien en una
+//  maquina pero distinto en otra con resolucion/escalado del SO
+//  diferente, porque "px fijos" son siempre el mismo tamano visual
+//  sin importar cuanta pantalla real tengas disponible.
+//  Usamos screen.width (resolucion REAL del monitor en px CSS, ya
+//  normalizada por el escalado del SO, y que NO cambia si esta pagina
+//  hace zoom) para calcular un factor relativo a una referencia de
+//  1920px, y lo aplicamos con CSS "zoom" sobre <html>. zoom escala
+//  todo el layout (incluyendo coordenadas de mouse/clientX/Y, a
+//  diferencia de transform:scale), asi que todo el codigo existente
+//  de drag/resize en px sigue funcionando sin tocarlo.
+// ══════════════════════════════════════════════════════
+(function aplicarEscalaUI() {
+  const REF_W = 1920;
+  const MIN_ESCALA = 0.65;
+  const MAX_ESCALA = 1.35;
+  let factor = (screen.width || window.innerWidth) / REF_W;
+  factor = Math.min(MAX_ESCALA, Math.max(MIN_ESCALA, factor));
+  document.documentElement.style.zoom = factor;
+})();
+
+// ══════════════════════════════════════════════════════
+//  ESCALA DE ICONOS DEL ESCRITORIO (x1 / x1.15 / x1.25 / x1.50 / x2)
+//  Guarda la preferencia en localStorage y la aplica via CSS variables.
+// ══════════════════════════════════════════════════════
+const ESCALAS_ICONOS = [1, 1.15, 1.25, 1.5, 2];
+const ESCALA_ICONO_KEY = 'nanamyos_icon_scale';
+
+function _getEscalaIconos() {
+  try {
+    const v = parseFloat(localStorage.getItem(ESCALA_ICONO_KEY));
+    return ESCALAS_ICONOS.includes(v) ? v : 1;
+  } catch(e) { return 1; }
+}
+
+function aplicarEscalaIconos(factor) {
+  window._iconScaleFactor = factor;
+  const r = document.documentElement;
+  // iconos del escritorio
+  r.style.setProperty('--icon-w',          Math.round(110 * factor) + 'px');
+  r.style.setProperty('--icon-h',          Math.round(115 * factor) + 'px');
+  r.style.setProperty('--icon-glyph-s',    Math.round(55  * factor) + 'px');
+  r.style.setProperty('--icon-glyph-font', Math.round(25  * factor) + 'px');
+  r.style.setProperty('--icon-label-font', Math.round(12  * factor) + 'px');
+  // iconos del explorador de archivos
+  r.style.setProperty('--fs-glyph-s',    Math.round(44  * factor) + 'px');
+  r.style.setProperty('--fs-glyph-font', Math.round(20  * factor) + 'px');
+  r.style.setProperty('--fs-name-font',  Math.round(11  * factor) + 'px');
+  r.style.setProperty('--fs-item-w',     Math.round(97  * factor) + 'px');
+  _recalcularCeldasIconos(factor);
+}
+
+function _recalcularCeldasIconos(factor) {
+  const W = Math.round(120 * factor);
+  const H = Math.round(125 * factor);
+  if (typeof iconGrid === 'undefined' || !iconGrid) return;
+  iconGrid.querySelectorAll('.icon').forEach(ic => {
+    const col = +ic.dataset.col, fila = +ic.dataset.fila;
+    ic.style.left = (col * W) + 'px';
+    ic.style.top  = (fila * H) + 'px';
+  });
+}
+
+// Aplicar variables CSS al cargar (NO referencias al DOM todavía — esas vienen después)
+(function() {
+  const s = _getEscalaIconos();
+  window._iconScaleFactor = s;
+  const r = document.documentElement;
+  r.style.setProperty('--icon-w',          Math.round(110 * s) + 'px');
+  r.style.setProperty('--icon-h',          Math.round(115 * s) + 'px');
+  r.style.setProperty('--icon-glyph-s',    Math.round(55  * s) + 'px');
+  r.style.setProperty('--icon-glyph-font', Math.round(25  * s) + 'px');
+  r.style.setProperty('--icon-label-font', Math.round(12  * s) + 'px');
+  r.style.setProperty('--fs-glyph-s',    Math.round(44  * s) + 'px');
+  r.style.setProperty('--fs-glyph-font', Math.round(20  * s) + 'px');
+  r.style.setProperty('--fs-name-font',  Math.round(11  * s) + 'px');
+  r.style.setProperty('--fs-item-w',     Math.round(97  * s) + 'px');
+})();
+
+// ══════════════════════════════════════════════════════
+//  I18N — TRADUCCIÓN EN TIEMPO REAL (ES / EN)
+// ══════════════════════════════════════════════════════
+
+const I18N = {
+  // taskbar / start menu
+  'os.name':            { es: 'NanamyOS',                  en: 'NanamyOS' },
+  'start.recent':        { es: 'RECIENTES',                en: 'RECENT' },
+  'start.recentEmpty':   { es: 'Nada abierto todavia',     en: 'Nothing opened yet' },
+  'start.power':         { es: '⏻ Apagar NanamyOS',        en: '⏻ Shut down NanamyOS' },
+  'tray.sdOk':           { es: 'SD OK',                    en: 'SD OK' },
+  // ventana plantilla
+  'win.maximize':        { es: 'Maximizar',                en: 'Maximize' },
+  'win.minimize':        { es: 'Minimizar',                en: 'Minimize' },
+  'win.close':           { es: 'Cerrar',                   en: 'Close' },
+  'win.default':         { es: 'Ventana',                  en: 'Window' },
+  // iconos fijos del escritorio
+  'icon.home':           { es: 'Home',                     en: 'Home' },
+  'icon.config':         { es: 'Config',                   en: 'Settings' },
+  'icon.papelera':       { es: 'Papelera',                 en: 'Trash' },
+  // explorador
+  'fs.loading':          { es: 'Cargando...',              en: 'Loading...' },
+  'fs.empty':            { es: 'Carpeta vacía',            en: 'Empty folder' },
+  'fs.home':             { es: 'Home',                     en: 'Home' },
+  'fs.subir':            { es: 'Subir archivo',            en: 'Upload file' },
+  // modal genérico
+  'modal.ok':            { es: 'Aceptar',                  en: 'OK' },
+  'modal.cancel':        { es: 'Cancelar',                 en: 'Cancel' },
+  // mensajes de error / confirmación
+  'msg.noConectar':      { es: 'No se pudo conectar con NanamyOS.', en: 'Could not connect to NanamyOS.' },
+  'msg.noMover':         { es: 'No se pudo mover "{0}".\n(HTTP {1})', en: 'Could not move "{0}".\n(HTTP {1})' },
+  'msg.noCrearCarpeta':  { es: 'No se pudo crear la carpeta.', en: 'Could not create the folder.' },
+  'msg.noCrearArchivo':  { es: 'No se pudo crear el archivo.', en: 'Could not create the file.' },
+  'msg.noCopiarMover':   { es: 'No se pudo {0} "{1}".\n(HTTP {2})', en: 'Could not {0} "{1}".\n(HTTP {2})' },
+  'msg.copiar':          { es: 'copiar',                   en: 'copy' },
+  'msg.mover':           { es: 'mover',                    en: 'move' },
+  'msg.noRenombrar':     { es: 'No se pudo renombrar.',    en: 'Could not rename.' },
+  'msg.noEliminar':      { es: 'No se pudo eliminar.',     en: 'Could not delete.' },
+  'msg.noSubir':         { es: 'No se pudo subir "{0}".\n(HTTP {1})', en: 'Could not upload "{0}".\n(HTTP {1})' },
+  'msg.noDescargar':     { es: 'No se pudo descargar "{0}".', en: 'Could not download "{0}".' },
+  'msg.subiendo':        { es: 'Subiendo {0} de {1}: {2}',  en: 'Uploading {0} of {1}: {2}' },
+  'msg.tituloError':     { es: 'Error',                    en: 'Error' },
+  'lex.errorLeer':       { es: 'No se pudo leer la app .lex.\\n({0})', en: 'Could not read the .lex app.\\n({0})' },
+  'lex.errorFormato':    { es: 'Formato .lex invalido: falta el campo "html".', en: 'Invalid .lex format: missing "html" field.' },
+  'msg.tituloSinConexion': { es: 'Sin conexion',           en: 'No connection' },
+  'msg.eliminarConfirm': { es: 'Vas a eliminar "{0}" de forma permanente.\n¿Quieres continuar?', en: 'You are about to permanently delete "{0}".\nDo you want to continue?' },
+  'msg.tituloEliminar':  { es: 'Eliminar',                 en: 'Delete' },
+  'msg.acercaTexto':     { es: 'NanamyOS v1.5\npor Jorge Rios', en: 'NanamyOS v1.5\nby Jorge Rios' },
+  'msg.tituloAcerca':    { es: 'Acerca de',                en: 'About' },
+  // prompts
+  'prompt.nombreCarpeta':{ es: 'Nombre de la nueva carpeta:', en: 'New folder name:' },
+  'prompt.nombreArchivo':{ es: 'Nombre del nuevo archivo:', en: 'New file name:' },
+  'prompt.nuevoNombre':  { es: 'Nuevo nombre:',             en: 'New name:' },
+  'prompt.tituloNuevaCarpeta': { es: 'Nueva carpeta',       en: 'New folder' },
+  'prompt.tituloNuevoArchivo': { es: 'Nuevo archivo',       en: 'New file' },
+  'prompt.tituloRenombrar':    { es: 'Renombrar',          en: 'Rename' },
+  // menú contextual
+  'ctx.nuevaCarpeta':    { es: 'Nueva carpeta',             en: 'New folder' },
+  'ctx.nuevoArchivo':    { es: 'Nuevo archivo',             en: 'New file' },
+  'ctx.pegar':           { es: 'Pegar "{0}"',               en: 'Paste "{0}"' },
+  'ctx.pegarAqui':       { es: 'Pegar "{0}" aqui',          en: 'Paste "{0}" here' },
+  'ctx.actualizar':      { es: 'Actualizar',                en: 'Refresh' },
+  'ctx.actualizarEscritorio': { es: 'Actualizar escritorio', en: 'Refresh desktop' },
+  'ctx.acercaDe':        { es: 'Acerca de NanamyOS',        en: 'About NanamyOS' },
+  'ctx.copiar':          { es: 'Copiar',                    en: 'Copy' },
+  'ctx.cortar':          { es: 'Cortar',                    en: 'Cut' },
+  'ctx.renombrar':       { es: 'Renombrar',                 en: 'Rename' },
+  'ctx.eliminar':        { es: 'Eliminar',                  en: 'Delete' },
+  'ctx.descargar':       { es: 'Descargar',                 en: 'Download' },
+  // Nanamy AI
+  'ai.welcome':          { es: '¡Hola! Soy Nanamy. ¿En qué puedo ayudarte hoy?', en: 'Hi! I am Nanamy. How can I help you today?' },
+  'ai.thinking':         { es: 'Pensando...',              en: 'Thinking...' },
+  'ai.error':            { es: 'Error al conectar con la IA', en: 'Error connecting to AI' },
+  'ai.placeholder':      { es: 'Escribe un mensaje...',     en: 'Type a message...' },
+  // Navegador
+  'icon.browser':        { es: 'Navegador',                 en: 'Browser' },
+  'browser.back':        { es: 'Atrás',                     en: 'Back' },
+  'browser.forward':     { es: 'Adelante',                  en: 'Forward' },
+  'browser.reload':      { es: 'Recargar',                  en: 'Reload' },
+  'browser.go':          { es: 'Ir',                        en: 'Go' },
+  'browser.bookmarks':   { es: 'Marcadores',                en: 'Bookmarks' },
+  'browser.fullscreen':  { es: 'Pantalla Completa',         en: 'Fullscreen' },
+  'browser.addBookmark': { es: 'Añadir Marcador',           en: 'Add Bookmark' },
+  'browser.addCurrent':  { es: 'Añadir sitio actual',       en: 'Add current site' },
+  'browser.addCustom':   { es: 'Añadir URL personalizada',  en: 'Add custom URL' },
+  'browser.bookmarkTitle': { es: 'Nombre del marcador:',    en: 'Bookmark title:' },
+  'browser.bookmarkUrl':   { es: 'URL del marcador:',       en: 'Bookmark URL:' },
+  // arrastrar y soltar desde el sistema operativo (PC)
+  'dnd.suelta':          { es: 'Suelta para subir a',        en: 'Drop to upload to' },
+  // editor de texto
+  'editor.guardar':      { es: '💾 Guardar',                en: '💾 Save' },
+  'editor.guardando':    { es: 'Guardando...',              en: 'Saving...' },
+  'editor.guardado':     { es: '✓ Guardado',                en: '✓ Saved' },
+  'editor.errorGuardar': { es: '✗ Error al guardar',        en: '✗ Error saving' },
+  'editor.sinConexion':  { es: '✗ Sin conexión',             en: '✗ No connection' },
+  'editor.errorCargar':  { es: '(error cargando archivo)',  en: '(error loading file)' },
+  'editor.noConectar':   { es: '(no se pudo conectar)',     en: '(could not connect)' },
+  // settings
+  'settings.titulo':     { es: 'Settings',                  en: 'Settings' },
+  'settings.hardware':   { es: 'Hardware',                  en: 'Hardware' },
+  'settings.dispositivo':{ es: 'Dispositivo:',               en: 'Device:' },
+  'settings.proyecto':   { es: 'Proyecto:',                 en: 'Project:' },
+  'settings.creador':    { es: 'Creador:',                  en: 'Creator:' },
+  'settings.osTitulo':   { es: 'NanamyOS Settings',          en: 'NanamyOS Settings' },
+  'settings.osConstruccion': { es: 'Opciones del sistema web en construcción.', en: 'Web system options under construction.' },
+  'settings.osDetalle':  { es: 'Aquí irán las preferencias propias del OS web —<br>tema, idioma de interfaz, y más.', en: 'This is where the web OS preferences will go —<br>theme, interface language, and more.' },
+  'settings.escala':     { es: 'Tamaño de iconos',           en: 'Icon size' },
+  'settings.escalaSub':  { es: 'Escala los iconos y texto del escritorio', en: 'Scales desktop icons and labels' },
+  'settings.idioma':     { es: 'Idioma / Language',          en: 'Language / Idioma' },
+  'settings.idiomaSub':  { es: 'Traduce la interfaz en tiempo real', en: 'Translates the interface in real time' },
+  'settings.idiomaES':   { es: 'Español',                    en: 'Spanish' },
+  'settings.idiomaEN':   { es: 'English',                    en: 'English' },
+  'settings.aiPersona':  { es: 'Personalidad de la IA',     en: 'AI Persona' },
+  'settings.aiPersonaSub': { es: 'Define cómo se comporta la IA del escritorio', en: 'Define how the desktop AI behaves' },
+};
+
+function _t(key, ...args) {
+  const entry = I18N[key];
+  if (!entry) return key;
+  const lang = (window._idioma === 'en') ? 'en' : 'es';
+  let str = entry[lang] || entry.es || key;
+  args.forEach((a, i) => { str = str.replace('{' + i + '}', a); });
+  return str;
+}
+window._idioma = (function() {
+  try { return localStorage.getItem('nanamyos_lang') || 'en'; } catch(e) { return 'en'; }
+})();
+
+function _setIdioma(lang) {
+  window._idioma = lang === 'en' ? 'en' : 'es';
+  try { localStorage.setItem('nanamyos_lang', window._idioma); } catch(e) {}
+  _retraducirUI();
+}
+
+// re-traduce todo lo visible actualmente (estático + dinámico abierto)
+function _retraducirUI() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = _t(el.dataset.i18n);
+  });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => {
+    el.innerHTML = _t(el.dataset.i18nHtml);
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    el.title = _t(el.dataset.i18nTitle);
+  });
+  // chips de taskbar con titulo traducible
+  document.querySelectorAll('[data-i18n-chip]').forEach(el => {
+    const key = el.dataset.i18nChip;
+    const iconoCh = el.dataset.chipIcon || '';
+    el.textContent = iconoCh + ' ' + _t(key);
+  });
+  // re-render del start menu (recientes) y ventanas dinámicas que dependan del idioma
+  if (typeof dibujarRecientes === 'function') dibujarRecientes();
+  if (typeof refrescarVentanasAbiertasIdioma === 'function') refrescarVentanasAbiertasIdioma();
+}
+
+// ══════════════════════════════════════════════════════
+//  FULLSCREEN AL CARGAR
+// ══════════════════════════════════════════════════════
+(function() {
+  const el = document.documentElement;
+  const fn = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen;
+  if (fn) {
+    document.addEventListener('click', function tryFS() {
+      fn.call(el);
+      document.removeEventListener('click', tryFS);
+    }, { once: true });
+  }
+})();
+
+// ══════════════════════════════════════════════════════
+//  MODAL DE SISTEMA (reemplaza alert / prompt / confirm)
+// ══════════════════════════════════════════════════════
+const modalOverlay = document.getElementById('modal-overlay');
+const modalIcon    = document.getElementById('modal-icon');
+const modalTitle   = document.getElementById('modal-title');
+const modalMsg     = document.getElementById('modal-msg');
+const modalInput   = document.getElementById('modal-input');
+const modalActions = document.getElementById('modal-actions');
+
+function _cerrarModal() {
+  modalOverlay.classList.remove('show');
+  modalInput.style.display = 'none';
+  modalInput.value = '';
+}
+
+// sysAlert(mensaje, { titulo, tipo }) -> Promise<void>
+function sysAlert(mensaje, opts = {}) {
+  return new Promise((resolve) => {
+    modalIcon.className = 'modal-icon ' + (opts.tipo || 'info');
+    modalIcon.textContent = opts.tipo === 'error' ? '✕' : opts.tipo === 'warn' ? '!' : 'ℹ';
+    modalTitle.textContent = opts.titulo || 'NanamyOS';
+    modalMsg.textContent = mensaje;
+    modalInput.style.display = 'none';
+
+    modalActions.innerHTML = '';
+    const btnOk = document.createElement('button');
+    btnOk.className = 'modal-btn primary';
+    btnOk.textContent = _t('modal.ok');
+    btnOk.addEventListener('click', () => { _cerrarModal(); resolve(); });
+    modalActions.appendChild(btnOk);
+
+    modalOverlay.classList.add('show');
+    setTimeout(() => btnOk.focus(), 30);
+  });
+}
+
+// sysConfirm(mensaje, { titulo, tipo, textoOk, textoCancelar, peligro }) -> Promise<boolean>
+function sysConfirm(mensaje, opts = {}) {
+  return new Promise((resolve) => {
+    modalIcon.className = 'modal-icon ' + (opts.tipo || 'warn');
+    modalIcon.textContent = opts.tipo === 'error' ? '✕' : '!';
+    modalTitle.textContent = opts.titulo || 'NanamyOS';
+    modalMsg.textContent = mensaje;
+    modalInput.style.display = 'none';
+
+    modalActions.innerHTML = '';
+    const btnCancel = document.createElement('button');
+    btnCancel.className = 'modal-btn';
+    btnCancel.textContent = opts.textoCancelar || _t('modal.cancel');
+    btnCancel.addEventListener('click', () => { _cerrarModal(); resolve(false); });
+
+    const btnOk = document.createElement('button');
+    btnOk.className = 'modal-btn ' + (opts.peligro ? 'danger' : 'primary');
+    btnOk.textContent = opts.textoOk || _t('modal.ok');
+    btnOk.addEventListener('click', () => { _cerrarModal(); resolve(true); });
+
+    modalActions.appendChild(btnCancel);
+    modalActions.appendChild(btnOk);
+
+    modalOverlay.classList.add('show');
+    setTimeout(() => btnOk.focus(), 30);
+  });
+}
+
+// sysPrompt(mensaje, valorInicial, { titulo }) -> Promise<string|null>
+function sysPrompt(mensaje, valorInicial = '', opts = {}) {
+  return new Promise((resolve) => {
+    modalIcon.className = 'modal-icon info';
+    modalIcon.textContent = 'ℹ';
+    modalTitle.textContent = opts.titulo || 'NanamyOS';
+    modalMsg.textContent = mensaje;
+    modalInput.style.display = 'block';
+    modalInput.value = valorInicial || '';
+
+    modalActions.innerHTML = '';
+    const btnCancel = document.createElement('button');
+    btnCancel.className = 'modal-btn';
+    btnCancel.textContent = _t('modal.cancel');
+    btnCancel.addEventListener('click', () => { _cerrarModal(); resolve(null); });
+
+    const btnOk = document.createElement('button');
+    btnOk.className = 'modal-btn primary';
+    btnOk.textContent = _t('modal.ok');
+    const confirmar = () => { const v = modalInput.value; _cerrarModal(); resolve(v); };
+    btnOk.addEventListener('click', confirmar);
+    modalInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') confirmar();
+      if (e.key === 'Escape') { _cerrarModal(); resolve(null); }
+    });
+
+    modalActions.appendChild(btnCancel);
+    modalActions.appendChild(btnOk);
+
+    modalOverlay.classList.add('show');
+    setTimeout(() => { modalInput.focus(); modalInput.select(); }, 30);
+  });
+}
+
+function sysChoice(mensaje, opciones, opts = {}) {
+  return new Promise((resolve) => {
+    modalIcon.className = 'modal-icon info';
+    modalIcon.textContent = 'ℹ';
+    modalTitle.textContent = opts.titulo || 'NanamyOS';
+    modalMsg.textContent = mensaje;
+    modalInput.style.display = 'none';
+
+    modalActions.innerHTML = '';
+    opciones.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = 'modal-btn ' + (opt.clase || 'primary');
+      btn.textContent = opt.texto;
+      btn.onclick = () => { _cerrarModal(); resolve(opt.valor); };
+      modalActions.appendChild(btn);
+    });
+
+    const btnCancel = document.createElement('button');
+    btnCancel.className = 'modal-btn';
+    btnCancel.textContent = _t('modal.cancel');
+    btnCancel.onclick = () => { _cerrarModal(); resolve(null); };
+    modalActions.appendChild(btnCancel);
+
+    modalOverlay.classList.add('show');
+  });
+}
+
+
+let uiState = { iconos: {}, ventanas: {} };
+
+async function cargarEstadoUI() {
+  try {
+    const r = await fetch('/api/ui/load');
+    if (r.ok) { const d = await r.json(); if (d && typeof d === 'object') uiState = d; }
+  } catch(e) {}
+}
+
+let _saveTimer = null;
+function guardarEstadoUI() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(async () => {
+    try {
+      await fetch('/api/ui/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(uiState)
+      });
+    } catch(e) {}
+  }, 600);
+}
+
+let globalBookmarks = [];
+async function cargarMarcadores() {
+  try {
+    const r = await fetch('/api/bookmarks/load');
+    if (r.ok) {
+      const d = await r.json();
+      globalBookmarks = d.bookmarks || [];
+    }
+  } catch(e) {}
+}
+
+async function guardarMarcadores() {
+  try {
+    await fetch('/api/bookmarks/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bookmarks: globalBookmarks })
+    });
+  } catch(e) {}
+}
+
+// ══════════════════════════════════════════════════════
+//  RELOJ
+// ══════════════════════════════════════════════════════
+function actualizarReloj() {
+  const d = new Date();
+  let h = d.getHours(), m = String(d.getMinutes()).padStart(2,'0');
+  const s = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  document.getElementById('clock').textContent = `${h}:${m} ${s}`;
+}
+actualizarReloj();
+setInterval(actualizarReloj, 15000);
+
+// ══════════════════════════════════════════════════════
+//  RECIENTES
+// ══════════════════════════════════════════════════════
+let recientes = [];
+function registrarReciente(nombre, isDir) {
+  recientes = recientes.filter(r => r.nombre !== nombre);
+  recientes.unshift({ nombre, isDir: !!isDir });
+  if (recientes.length > 5) recientes.pop();
+  dibujarRecientes();
+}
+function dibujarRecientes() {
+  const c = document.getElementById('recent-list');
+  if (recientes.length === 0) {
+    c.innerHTML = '<div class="recent-empty">' + _t('start.recentEmpty') + '</div>';
+    return;
+  }
+  c.innerHTML = recientes.map(r => `<div class="recent-item" data-name="${r.nombre}" data-isdir="${r.isDir}"><span class="recent-glyph">▤</span><span>${_labelDeIcono(r.nombre)}</span></div>`).join('');
+  c.querySelectorAll('.recent-item').forEach(el => {
+    el.addEventListener('click', () => {
+      startMenu.classList.remove('show');
+      abrirIconoPorNombre(el.dataset.name, el.dataset.isdir === 'true');
+    });
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  GESTOR DE VENTANAS
+// ══════════════════════════════════════════════════════
+let zTop = 40;
+const ventanasAbiertas = {}; // id -> { el, tipo, ruta }
+const desktop = document.getElementById('desktop');
+const taskbarWins = document.getElementById('open-windows');
+
+function traerAlFrente(el) {
+  zTop++;
+  el.style.zIndex = zTop;
+  // marcar chip activo
+  taskbarWins.querySelectorAll('.task-chip').forEach(c => c.classList.remove('active'));
+  const chip = taskbarWins.querySelector(`[data-winid="${el.dataset.winid}"]`);
+  if (chip) chip.classList.add('active');
+}
+
+function crearVentana({ id, titulo, icono = '▤', ancho = 520, alto = 380, izq, arr, i18nKey }) {
+  const tpl = document.getElementById('tpl-window');
+  const clone = tpl.content.cloneNode(true);
+  const win = clone.querySelector('.window');
+
+  win.dataset.winid = id;
+  win.querySelector('.win-title').textContent = titulo;
+  if (i18nKey) {
+    win.querySelector('.win-title').dataset.i18n = i18nKey;
+    win.dataset.i18nTitulo = i18nKey;
+  }
+  win.querySelector('.win-icon').textContent = icono;
+  win.querySelector('.win-maximize').title = _t('win.maximize');
+  win.querySelector('.win-minimize').title = _t('win.minimize');
+  win.querySelector('.win-close').title = _t('win.close');
+
+  // posición
+  const baseIzq = izq !== undefined ? izq : 100 + (Object.keys(ventanasAbiertas).length % 6) * 28;
+  const baseArr = arr !== undefined ? arr : 60  + (Object.keys(ventanasAbiertas).length % 6) * 22;
+  win.style.left   = baseIzq + 'px';
+  win.style.top    = baseArr + 'px';
+  win.style.width  = ancho   + 'px';
+  win.style.height = alto    + 'px';
+
+  desktop.appendChild(win);
+  win.classList.add('show');
+
+  // chip en taskbar
+  const chip = document.createElement('button');
+  chip.className = 'task-chip active';
+  chip.dataset.winid = id;
+  chip.innerHTML = `<span class="task-chip-label"${i18nKey ? ` data-i18n-chip="${i18nKey}" data-chip-icon="${icono}"` : ''}>${icono} ${titulo}</span><span class="task-chip-close">✕</span>`;
+  function toggleMinimizado() {
+    if (win.classList.contains('show')) {
+      // ── minimizar: encoge y se desvanece hacia su chip en la taskbar ──
+      const winRect  = win.getBoundingClientRect();
+      const chipRect = chip.getBoundingClientRect();
+      const dx = (chipRect.left + chipRect.width  / 2) - (winRect.left + winRect.width  / 2);
+      const dy = (chipRect.top  + chipRect.height / 2) - (winRect.top  + winRect.height / 2);
+      const escala = Math.max(0.05, chipRect.width / winRect.width);
+
+      const limpiar = () => {
+        win.classList.remove('show', 'anim-min');
+        win.style.transform = '';
+        win.style.opacity = '';
+        chip.classList.remove('active');
+      };
+
+      win.classList.add('anim-min');
+      win.style.transformOrigin = 'center center';
+      win.style.transform = `translate(${dx}px, ${dy}px) scale(${escala})`;
+      win.style.opacity = '0';
+      win.addEventListener('transitionend', limpiar, { once: true });
+      setTimeout(limpiar, 260); // respaldo si transitionend no dispara
+
+    } else {
+      // ── restaurar: aparece desde el chip y crece hasta su tamano/posicion normal ──
+      win.style.transformOrigin = 'center center';
+      win.classList.add('show'); // necesario para poder medir su rect real (left/top/width/height ya estan en su style)
+
+      const winRect  = win.getBoundingClientRect();
+      const chipRect = chip.getBoundingClientRect();
+      const dx = (chipRect.left + chipRect.width  / 2) - (winRect.left + winRect.width  / 2);
+      const dy = (chipRect.top  + chipRect.height / 2) - (winRect.top  + winRect.height / 2);
+      const escala = Math.max(0.05, chipRect.width / winRect.width);
+
+      // estado inicial (encogida en el chip), sin transicion para que no se anime el "salto"
+      win.style.transform = `translate(${dx}px, ${dy}px) scale(${escala})`;
+      win.style.opacity = '0';
+      void win.offsetHeight; // fuerza reflow para que el navegador registre el estado inicial
+
+      win.classList.add('anim-min');
+      requestAnimationFrame(() => {
+        win.style.transform = '';
+        win.style.opacity = '';
+      });
+
+      const limpiar = () => win.classList.remove('anim-min');
+      win.addEventListener('transitionend', limpiar, { once: true });
+      setTimeout(limpiar, 260);
+
+      traerAlFrente(win);
+    }
+  }
+
+  chip.addEventListener('click', (e) => {
+    if (e.target.classList.contains('task-chip-close')) {
+      cerrarVentana(id);
+    } else {
+      toggleMinimizado();
+    }
+  });
+  taskbarWins.appendChild(chip);
+  traerAlFrente(win);
+
+  // focus al hacer click en la ventana
+  win.addEventListener('mousedown', () => traerAlFrente(win));
+
+  // cerrar con X
+  win.querySelector('.win-close').addEventListener('click', () => cerrarVentana(id));
+
+  // minimizar
+  win.querySelector('.win-minimize').addEventListener('click', () => toggleMinimizado());
+
+  // maximizar
+  let maximizado = false, prevState = {};
+  const btnMax = win.querySelector('.win-maximize');
+  const toggleMax = () => {
+    win.classList.add('anim-max');
+    const quitarAnim = () => win.classList.remove('anim-max');
+    win.addEventListener('transitionend', quitarAnim, { once: true });
+    setTimeout(quitarAnim, 260); // respaldo si transitionend no dispara (ej. ya estaba en el valor final)
+
+    if (!maximizado) {
+      prevState = { left: win.style.left, top: win.style.top, width: win.style.width, height: win.style.height };
+      win.classList.add('maximized');
+      btnMax.textContent = '⊡';
+      maximizado = true;
+    } else {
+      win.classList.remove('maximized');
+      Object.assign(win.style, prevState);
+      btnMax.textContent = '□';
+      maximizado = false;
+    }
+  };
+  btnMax.addEventListener('click', toggleMax);
+  win.querySelector('.window-titlebar').addEventListener('dblclick', (e) => {
+    if (e.target.closest('.win-btn')) return;
+    toggleMax();
+  });
+
+  // arrastre
+  const titlebar = win.querySelector('.window-titlebar');
+  let drag = false, dox = 0, doy = 0;
+  titlebar.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.win-btn') || maximizado) return;
+    drag = true; traerAlFrente(win);
+    // getBoundingClientRect devuelve coordenadas ya escaladas por el zoom CSS del <html>.
+    // e.clientX/Y tambien estan en esas mismas coordenadas escaladas, asi que la resta es directa.
+    // Lo que necesitamos es el offset en coordenadas LOGICAS (sin zoom) para asignarlo a style.left/top,
+    // asi que dividimos por el zoom actual.
+    const zoom = parseFloat(document.documentElement.style.zoom) || 1;
+    const r = win.getBoundingClientRect();
+    dox = (e.clientX - r.left) / zoom;
+    doy = (e.clientY - r.top)  / zoom;
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!drag) return;
+    const zoom = parseFloat(document.documentElement.style.zoom) || 1;
+    win.style.left = (e.clientX / zoom - dox) + 'px';
+    win.style.top  = (e.clientY / zoom - doy) + 'px';
+  });
+  document.addEventListener('mouseup', () => {
+    if (drag) { drag = false; guardarEstadoVentana(id); }
+  });
+
+  // resize
+  const rh = win.querySelector('.resize-handle');
+  let res = false, rx = 0, ry = 0, rw = 0, rht = 0;
+  rh.addEventListener('mousedown', (e) => {
+    if (maximizado) return;
+    e.preventDefault(); e.stopPropagation();
+    const zoom = parseFloat(document.documentElement.style.zoom) || 1;
+    res = true; rx = e.clientX / zoom; ry = e.clientY / zoom;
+    rw = win.offsetWidth; rht = win.offsetHeight;
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!res) return;
+    const zoom = parseFloat(document.documentElement.style.zoom) || 1;
+    win.style.width  = Math.max(280, rw  + (e.clientX / zoom - rx)) + 'px';
+    win.style.height = Math.max(200, rht + (e.clientY / zoom - ry)) + 'px';
+  });
+  document.addEventListener('mouseup', () => {
+    if (res) { res = false; guardarEstadoVentana(id); }
+  });
+
+  return win;
+}
+
+function cerrarVentana(id) {
+  const info = ventanasAbiertas[id];
+  if (!info) return;
+  if (info._cleanup) info._cleanup();
+  info.el.remove();
+  const chip = taskbarWins.querySelector(`[data-winid="${id}"]`);
+  if (chip) chip.remove();
+  delete ventanasAbiertas[id];
+}
+
+function guardarEstadoVentana(id) {
+  const info = ventanasAbiertas[id];
+  if (!info || info.el.classList.contains('maximized')) return;
+  const el = info.el;
+  uiState.ventanas = uiState.ventanas || {};
+  uiState.ventanas[id] = {
+    left: el.style.left, top: el.style.top,
+    width: el.style.width, height: el.style.height,
+  };
+  guardarEstadoUI();
+}
+
+// ══════════════════════════════════════════════════════
+//  TIPOS MIME
+// ══════════════════════════════════════════════════════
+const MIME = {
+  txt:'text/plain', log:'text/plain', json:'application/json',
+  csv:'text/csv', html:'text/html', htm:'text/html',
+  jpg:'image/jpeg', jpeg:'image/jpeg', png:'image/png',
+  gif:'image/gif', bmp:'image/bmp', webp:'image/webp',
+  mp4:'video/mp4', webm:'video/webm',
+  mp3:'audio/mpeg', wav:'audio/wav', ogg:'audio/ogg', aac:'audio/aac',
+  pdf:'application/pdf',
+};
+
+function extDe(nombre) { return nombre.split('.').pop().toLowerCase(); }
+
+function tipoArchivo(nombre) {
+  const e = extDe(nombre);
+  if (e === 'lex') return 'lex';
+  if (['txt','log','json','csv','md','ini','cfg','py','js','sh'].includes(e)) return 'texto';
+  if (['jpg','jpeg','png','gif','bmp','webp'].includes(e)) return 'imagen';
+  if (['mp4','webm','mkv'].includes(e)) return 'video';
+  if (['mp3','wav','ogg','aac'].includes(e)) return 'audio';
+  if (e === 'pdf') return 'pdf';
+  if (['html','htm'].includes(e)) return 'html';
+  return 'desconocido';
+}
+
+function urlArchivo(ruta) {
+  return '/api/raw?path=' + encodeURIComponent(ruta);
+}
+
+// fuerza la descarga de un archivo de NanamyOS al dispositivo (PC/movil) que esta usando la interfaz
+function descargarArchivo(ruta, nombre) {
+  const a = document.createElement('a');
+  a.href = urlArchivo(ruta);
+  a.download = nombre;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+function normalizarUrl(input) {
+  let url = input.trim();
+  const lang = window._idioma || 'en';
+  const homePath = '/api/browser-home?lang=' + lang;
+
+  if (!url || url === '/api/browser-home') return homePath;
+  // Si ya es una ruta interna de la API, devolver tal cual
+  if (url.startsWith('/api/')) return url;
+
+  // Si tiene espacios o no tiene un punto, tratar como búsqueda con Brave
+  if (url.includes(' ') || !url.includes('.')) {
+    return '/api/browse/https://search.brave.com/search?q=' + encodeURIComponent(url);
+  }
+  if (!/^https?:\/\//i.test(url)) {
+    url = 'https://' + url;
+  }
+  return url;
+}
+
+function abrirBrowser(urlInicial) {
+  if (!urlInicial) urlInicial = '/api/browser-home?lang=' + (window._idioma || 'en');
+  const winId = 'browser_' + Date.now();
+  const win = crearVentana({ id: winId, titulo: _t('icon.browser'), icono: '🌐', ancho: 800, alto: 600 });
+  ventanasAbiertas[winId] = { el: win, tipo: 'browser' };
+
+  const toolbar = document.createElement('div');
+  toolbar.className = 'window-toolbar browser-toolbar';
+  toolbar.style.cssText = 'display:flex;gap:8px;padding:8px;background:var(--bg-alt);border-bottom:1px solid var(--border);align-items:center;';
+
+  const btnBack = document.createElement('button');
+  btnBack.className = 'win-btn';
+  btnBack.textContent = '←'; btnBack.title = _t('browser.back');
+
+  const btnForward = document.createElement('button');
+  btnForward.className = 'win-btn';
+  btnForward.textContent = '→'; btnForward.title = _t('browser.forward');
+
+  const btnReload = document.createElement('button');
+  btnReload.className = 'win-btn';
+  btnReload.textContent = '↻'; btnReload.title = _t('browser.reload');
+
+  const inputUrl = document.createElement('input');
+  inputUrl.type = 'text';
+  inputUrl.value = urlInicial;
+  inputUrl.style.cssText = 'flex:1;padding:4px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:var(--font-ui);font-size:12px;outline:none;';
+
+  const btnGo = document.createElement('button');
+  btnGo.className = 'win-btn';
+  btnGo.style.width = 'auto';
+  btnGo.style.padding = '0 8px';
+  btnGo.textContent = _t('browser.go');
+
+  const btnStar = document.createElement('button');
+  btnStar.className = 'win-btn browser-star-btn';
+  btnStar.textContent = '⭐'; btnStar.title = _t('browser.bookmarks');
+
+  toolbar.append(btnBack, btnForward, btnReload, inputUrl, btnGo, btnStar);
+
+  const body = document.createElement('div');
+  body.className = 'window-body viewer';
+  body.style.cssText = 'display:flex;flex-direction:column;flex:1;padding:0;overflow:hidden;background:#fff;position:relative;';
+
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'flex:1;width:100%;border:none;background:#fff;';
+  iframe.setAttribute('allow', 'fullscreen; autoplay; picture-in-picture; clipboard-write; encrypted-media; gyroscope');
+  iframe.setAttribute('allowfullscreen', 'true');
+
+  const drop = document.createElement('div');
+  drop.className = 'browser-bookmarks-dropdown';
+  win.appendChild(drop);
+
+  function renderBookmarks() {
+    drop.innerHTML = '';
+
+    globalBookmarks.forEach((b, i) => {
+      const item = document.createElement('div');
+      item.className = 'bookmark-item';
+
+      const info = document.createElement('div');
+      info.className = 'bookmark-info';
+
+      const title = document.createElement('span');
+      title.className = 'bookmark-title';
+      title.textContent = b.title;
+
+      const url = document.createElement('span');
+      url.className = 'bookmark-url';
+      url.textContent = b.url;
+
+      info.appendChild(title);
+      info.appendChild(url);
+      item.appendChild(info);
+
+      const del = document.createElement('span');
+      del.className = 'bookmark-del';
+      del.textContent = '✕';
+      del.onclick = (e) => {
+        e.stopPropagation();
+        globalBookmarks.splice(i, 1);
+        guardarMarcadores();
+        renderBookmarks();
+      };
+      item.appendChild(del);
+
+      item.onclick = (e) => {
+        e.stopPropagation();
+        navigate(b.url);
+        drop.classList.remove('show');
+      };
+      drop.appendChild(item);
+    });
+
+    // Botón para añadir (al final)
+    const addBtn = document.createElement('div');
+    addBtn.className = 'bookmark-item';
+    addBtn.style.borderTop = '1px solid var(--border)';
+    addBtn.style.fontWeight = 'bold';
+    addBtn.innerHTML = `<span>+ ${_t('browser.addBookmark')}</span>`;
+    addBtn.onclick = async (e) => {
+      e.stopPropagation();
+      const choice = await sysChoice(_t('browser.addBookmark'), [
+        { texto: _t('browser.addCurrent'), valor: 'current' },
+        { texto: _t('browser.addCustom'), valor: 'custom' }
+      ]);
+
+      if (!choice) return;
+
+      let targetUrl = '';
+      if (choice === 'current') {
+        targetUrl = inputUrl.value;
+      } else {
+        targetUrl = await sysPrompt(_t('browser.bookmarkUrl'), 'https://');
+      }
+
+      if (targetUrl) {
+        const title = await sysPrompt(_t('browser.bookmarkTitle'), targetUrl.split('/')[2] || targetUrl);
+        if (title) {
+          globalBookmarks.push({ title: title, url: targetUrl });
+          guardarMarcadores();
+          renderBookmarks();
+        }
+      }
+    };
+    drop.appendChild(addBtn);
+  }
+
+  btnStar.onclick = (e) => {
+    e.stopPropagation();
+    const isShowing = drop.classList.contains('show');
+    document.querySelectorAll('.browser-bookmarks-dropdown').forEach(d => d.classList.remove('show'));
+    if (!isShowing) {
+      renderBookmarks();
+      drop.classList.add('show');
+    }
+  };
+
+  win.addEventListener('mousedown', (e) => {
+    if (!e.target.closest('.browser-bookmarks-dropdown')) {
+      document.querySelectorAll('.browser-bookmarks-dropdown').forEach(d => d.classList.remove('show'));
+    }
+  });
+
+  function navigate(url) {
+    const normalized = normalizarUrl(url);
+    inputUrl.value = (normalized === '/api/browser-home') ? '' : normalized;
+    iframe.src = normalized.startsWith('/api/') ? normalized : '/api/browse/' + normalized;
+  }
+
+  btnGo.onclick = () => navigate(inputUrl.value);
+  inputUrl.onkeydown = (e) => { if (e.key === 'Enter') navigate(inputUrl.value); };
+  btnReload.onclick = () => { iframe.src = iframe.src; };
+  btnBack.onclick = () => { try { iframe.contentWindow.history.back(); } catch(e) {} };
+  btnForward.onclick = () => { try { iframe.contentWindow.history.forward(); } catch(e) {} };
+
+  iframe.onload = () => {
+    try {
+      const currentProxyUrl = iframe.contentWindow.location.href;
+      if (currentProxyUrl.includes('/api/browser-home')) {
+        inputUrl.value = '';
+      } else if (currentProxyUrl.includes('/api/browse/')) {
+        const realUrl = currentProxyUrl.substring(currentProxyUrl.indexOf('/api/browse/') + 12);
+        if (realUrl) inputUrl.value = realUrl;
+      }
+    } catch(e) {}
+  };
+
+  const syncInterval = setInterval(() => {
+    try {
+      if (!iframe || !iframe.contentWindow) return;
+      const currentProxyUrl = iframe.contentWindow.location.href;
+      if (currentProxyUrl.includes('/api/browser-home')) {
+        if (inputUrl.value !== '' && document.activeElement !== inputUrl) inputUrl.value = '';
+      } else if (currentProxyUrl.includes('/api/browse/')) {
+        const realUrl = currentProxyUrl.substring(currentProxyUrl.indexOf('/api/browse/') + 12);
+        if (realUrl && inputUrl.value !== realUrl && document.activeElement !== inputUrl) {
+          inputUrl.value = realUrl;
+        }
+      }
+    } catch(e) {}
+  }, 1000);
+
+  const onMsg = (e) => {
+    if (!e.data || e.source !== iframe.contentWindow) return;
+
+    if (e.data.type === 'browser-fs') {
+      toggleFS(e.data.state);
+    } else if (e.data.type === 'browser-url') {
+      let realUrl = e.data.url;
+      if (realUrl.includes('/api/browse/')) {
+        realUrl = realUrl.substring(realUrl.indexOf('/api/browse/') + 12);
+      }
+      if (realUrl && !realUrl.includes('/api/browser-home') && inputUrl.value !== realUrl && document.activeElement !== inputUrl) {
+        inputUrl.value = realUrl;
+        iframe.dataset.currentRealUrl = realUrl;
+      }
+    }
+  };
+  window.addEventListener('message', onMsg);
+
+  const exitFSBtn = document.createElement('button');
+  exitFSBtn.textContent = '✕ Exit Fullscreen';
+  exitFSBtn.style.cssText = 'position:absolute;top:10px;right:10px;z-index:10001;background:rgba(0,0,0,0.6);color:#fff;border:none;padding:6px 12px;border-radius:20px;font-size:11px;display:none;';
+  exitFSBtn.onclick = () => toggleFS(false);
+  body.appendChild(exitFSBtn);
+
+  function toggleFS(isFS) {
+    if (isFS) {
+      win.dataset.prevWidth = win.style.width;
+      win.dataset.prevHeight = win.style.height;
+      win.dataset.prevTop = win.style.top;
+      win.dataset.prevLeft = win.style.left;
+      win.classList.add('maximized', 'os-fullscreen-mode');
+      exitFSBtn.style.display = 'block';
+    } else {
+      win.classList.remove('os-fullscreen-mode');
+      exitFSBtn.style.display = 'none';
+      // Restaurar si no estaba maximizado manualmente antes
+      if (win.dataset.prevWidth) {
+         win.style.width = win.dataset.prevWidth;
+         win.style.height = win.dataset.prevHeight;
+         win.style.top = win.dataset.prevTop;
+         win.style.left = win.dataset.prevLeft;
+         win.classList.remove('maximized');
+      }
+    }
+  }
+
+  win.querySelector('.win-close').addEventListener('click', () => {
+    clearInterval(syncInterval);
+    window.removeEventListener('message', onMsg);
+  });
+
+  body.appendChild(iframe);
+  win.insertBefore(toolbar, win.querySelector('.resize-handle'));
+  win.insertBefore(body, win.querySelector('.resize-handle'));
+
+  navigate(urlInicial);
+}
+
+// ══════════════════════════════════════════════════════
+//  ABRIR ARCHIVO EN VENTANA
+// ══════════════════════════════════════════════════════
+async function abrirArchivo(rutaCarpeta, nombre) {
+  const sep   = rutaCarpeta.endsWith('/') ? '' : '/';
+  const ruta  = rutaCarpeta + sep + nombre;
+  const tipo  = tipoArchivo(nombre);
+  const winId = 'file_' + ruta.replace(/[^a-zA-Z0-9]/g, '_');
+
+  // si ya está abierta, traer al frente
+  if (ventanasAbiertas[winId]) {
+    const info = ventanasAbiertas[winId];
+    info.el.classList.add('show');
+    traerAlFrente(info.el);
+    return;
+  }
+
+  // ── .lex: mini-apps de NanamyOS (manifiesto JSON con HTML/CSS/JS inline) ──
+  // se lee y se valida ANTES de crear la ventana, porque el propio .lex
+  // puede definir su nombre/icono/tamano (si no, se usan los del archivo).
+  if (tipo === 'lex') {
+    let manifest;
+    try {
+      const r = await fetch(urlArchivo(ruta));
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      manifest = JSON.parse(await r.text());
+    } catch (e) {
+      await sysAlert(_t('lex.errorLeer', e.message), { tipo: 'error', titulo: _t('msg.tituloError') });
+      return;
+    }
+    if (!manifest || typeof manifest.html !== 'string') {
+      await sysAlert(_t('lex.errorFormato'), { tipo: 'error', titulo: _t('msg.tituloError') });
+      return;
+    }
+
+    const titulo = manifest.name || nombre.replace(/\.lex$/i, '');
+    const icono  = manifest.icon || '✦';
+    const win = crearVentana({
+      id: winId, titulo, icono,
+      ancho: Number(manifest.width) || undefined,
+      alto:  Number(manifest.height) || undefined,
+    });
+    ventanasAbiertas[winId] = { el: win, tipo: 'lex', ruta };
+
+    const div = document.createElement('div');
+    div.className = 'window-body viewer media-container';
+    div.style.padding = '0';
+    const iframe = document.createElement('iframe');
+    // sandbox: la app corre en su propio origen aislado del DOM de NanamyOS,
+    // pero puede correr su propio JS (allow-scripts), abrir popups/forms,
+    // y usar localStorage/cookies persistentes propias (allow-same-origin).
+    // NOTA DE SEGURIDAD: allow-scripts + allow-same-origin juntos significan
+    // que una app .lex maliciosa podria intentar acceder al DOM padre. Esto
+    // es aceptable solo porque las apps .lex son escritas/revisadas por el
+    // propio usuario, no contenido de terceros sin confianza.
+    iframe.setAttribute('sandbox', 'allow-scripts allow-forms allow-popups allow-modals allow-same-origin');
+    iframe.style.cssText = 'width:100%;height:100%;border:none;background:#fff;';
+    iframe.srcdoc = manifest.html;
+    div.appendChild(iframe);
+    win.insertBefore(div, win.querySelector('.resize-handle'));
+    return;
+  }
+
+  const iconos = { texto:'📄', imagen:'🖼', video:'▶', audio:'♪', pdf:'📋', html:'🌐', desconocido:'▢' };
+  const win = crearVentana({ id: winId, titulo: nombre, icono: iconos[tipo] || '▢' });
+  ventanasAbiertas[winId] = { el: win, tipo, ruta };
+
+  const url = urlArchivo(ruta);
+
+  if (tipo === 'texto') {
+    // ── Editor de texto ──
+    const toolbar = document.createElement('div');
+    toolbar.className = 'editor-toolbar';
+
+    const status = document.createElement('span');
+    status.className = 'editor-status';
+    status.textContent = nombre;
+
+    const btnGuardar = document.createElement('button');
+    btnGuardar.className = 'editor-save-btn';
+    btnGuardar.textContent = _t('editor.guardar');
+
+    toolbar.appendChild(status);
+    toolbar.appendChild(btnGuardar);
+
+    const ta = document.createElement('textarea');
+    ta.id = 'txt-editor-' + winId;
+    ta.className = 'window-body viewer';
+    ta.style.cssText = 'flex:1;width:100%;background:var(--bg);color:var(--text);font-family:var(--font-ui);font-size:13px;border:none;outline:none;padding:14px;resize:none;line-height:1.6;user-select:text;-webkit-user-select:text;';
+    ta.spellcheck = false;
+
+    // cargar contenido
+    try {
+      const r = await fetch(url);
+      ta.value = r.ok ? await r.text() : _t('editor.errorCargar');
+    } catch(e) { ta.value = _t('editor.noConectar'); }
+
+    btnGuardar.addEventListener('click', async () => {
+      status.textContent = _t('editor.guardando');
+      try {
+        const r = await fetch('/api/save?path=' + encodeURIComponent(ruta), {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+          body: ta.value
+        });
+        status.textContent = r.ok ? _t('editor.guardado') : _t('editor.errorGuardar');
+      } catch(e) { status.textContent = _t('editor.sinConexion'); }
+      setTimeout(() => { status.textContent = nombre; }, 2000);
+    });
+
+    win.insertBefore(toolbar, win.querySelector('.resize-handle'));
+    win.insertBefore(ta, win.querySelector('.resize-handle'));
+
+  } else if (tipo === 'imagen') {
+    const div = document.createElement('div');
+    div.className = 'window-body viewer media-container';
+    const img = document.createElement('img');
+    img.src = url; img.alt = nombre;
+    div.appendChild(img);
+    win.insertBefore(div, win.querySelector('.resize-handle'));
+
+  } else if (tipo === 'video') {
+    const div = document.createElement('div');
+    div.className = 'window-body viewer media-container';
+    div.style.background = '#000';
+    const vid = document.createElement('video');
+    vid.src = url; vid.controls = true; vid.autoplay = false;
+    vid.style.maxWidth = '100%'; vid.style.maxHeight = '100%';
+    div.appendChild(vid);
+    win.insertBefore(div, win.querySelector('.resize-handle'));
+
+  } else if (tipo === 'audio') {
+    const div = document.createElement('div');
+    div.className = 'window-body viewer media-container';
+    div.style.flexDirection = 'column'; div.style.gap = '12px';
+    const lbl = document.createElement('div');
+    lbl.style.cssText = 'color:var(--subtext);font-size:12px;';
+    lbl.textContent = nombre;
+    const aud = document.createElement('audio');
+    aud.src = url; aud.controls = true; aud.autoplay = false;
+    aud.style.width = '90%';
+    div.appendChild(lbl); div.appendChild(aud);
+    win.insertBefore(div, win.querySelector('.resize-handle'));
+
+  } else if (tipo === 'pdf' || tipo === 'html') {
+    const div = document.createElement('div');
+    div.className = 'window-body viewer media-container';
+    div.style.padding = '0';
+    const iframe = document.createElement('iframe');
+    iframe.src = url;
+    iframe.style.cssText = 'width:100%;height:100%;border:none;';
+    div.appendChild(iframe);
+    win.insertBefore(div, win.querySelector('.resize-handle'));
+
+  } else {
+    // descarga directa
+    const a = document.createElement('a');
+    a.href = url; a.download = nombre; a.click();
+    cerrarVentana(winId);
+    return;
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  ESCRITORIO SIMULADO: fusiona "/" con "/Desktop"
+// ══════════════════════════════════════════════════════
+async function listarFusionRaizYDesktop() {
+  const resultado = [];
+
+  async function listar(ruta) {
+    try {
+      const r = await fetch('/api/files?path=' + encodeURIComponent(ruta));
+      if (!r.ok) return [];
+      const data = await r.json();
+      return (data.items || []).map(it => ({ ...it, origen: ruta }));
+    } catch(e) { return []; }
+  }
+
+  const [raiz, desktop] = await Promise.all([listar('/'), listar('/Desktop')]);
+
+  // de la raiz, excluimos la carpeta "Desktop" misma para no listarla dos veces
+  raiz.forEach(it => {
+    if (it.isDir && it.name === 'Desktop') return;
+    resultado.push(it);
+  });
+  desktop.forEach(it => resultado.push(it));
+
+  return resultado;
+}
+
+// ══════════════════════════════════════════════════════
+//  EXPLORADOR DE ARCHIVOS
+// ══════════════════════════════════════════════════════
+async function abrirExplorador(rutaInicial, tituloInicial) {
+  const winId = 'explorer_' + Date.now();
+  const win   = crearVentana({ id: winId, titulo: tituloInicial || 'Explorador', icono: '▤' });
+  ventanasAbiertas[winId] = { el: win, tipo: 'explorador', ruta: rutaInicial };
+
+  // toolbar con boton atrás y path
+  const toolbar = document.createElement('div');
+  toolbar.className = 'window-toolbar';
+
+  const btnBack = document.createElement('button');
+  btnBack.className = 'win-back'; btnBack.textContent = '←'; btnBack.disabled = true;
+
+  const pathSpan = document.createElement('span');
+  pathSpan.className = 'win-path'; pathSpan.textContent = rutaInicial;
+
+  const btnUpload = document.createElement('button');
+  btnUpload.className = 'win-upload'; btnUpload.textContent = '⇧'; btnUpload.title = _t('fs.subir') || 'Subir archivo';
+
+  const inputUpload = document.createElement('input');
+  inputUpload.type = 'file';
+  inputUpload.multiple = true;
+  inputUpload.style.display = 'none';
+
+  btnUpload.addEventListener('click', () => inputUpload.click());
+  inputUpload.addEventListener('change', async () => {
+    const archivos = Array.from(inputUpload.files || []);
+    inputUpload.value = ''; // permite volver a elegir el mismo archivo despues
+    if (!archivos.length) return;
+    const entradas = archivos.map(f => ({ file: f, relPath: f.name }));
+    await subirEntradas(entradas, rutaActual);
+    cargarCarpeta(rutaActual, false);
+  });
+
+  toolbar.appendChild(btnBack); toolbar.appendChild(pathSpan); toolbar.appendChild(btnUpload); toolbar.appendChild(inputUpload);
+
+  const body = document.createElement('div');
+  body.className = 'window-body';
+
+  win.insertBefore(toolbar, win.querySelector('.resize-handle'));
+  win.insertBefore(body,    win.querySelector('.resize-handle'));
+
+  let historial = [];
+  let rutaActual = rutaInicial;
+
+  async function cargarCarpeta(ruta, addHistory) {
+    body.innerHTML = '<div class="fs-empty">' + _t('fs.loading') + '</div>';
+    pathSpan.textContent = ruta;
+    win.querySelector('.win-title').textContent = (ruta === '/Home' || ruta === '/') ? _t('fs.home') : ruta.split('/').filter(Boolean).pop();
+
+    if (addHistory && rutaActual !== ruta) historial.push(rutaActual);
+    rutaActual = ruta;
+    ventanasAbiertas[winId].ruta = ruta;
+    btnBack.disabled = historial.length === 0;
+    body.dataset.focuspath = ruta; // el fondo de esta ventana enfoca "ruta" mientras el mouse este sobre el
+
+    try {
+      const r = await fetch('/api/files?path=' + encodeURIComponent(ruta));
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const data = await r.json();
+      let items = (data.items || []).map(it => ({ ...it, origen: ruta }));
+
+      if (!items || items.length === 0) {
+        body.innerHTML = '<div class="fs-empty">' + _t('fs.empty') + '</div>'; return;
+      }
+
+      items = items.slice().sort((a,b) => {
+        if (a.isDir !== b.isDir) return a.isDir ? -1 : 1;
+        return a.name.localeCompare(b.name);
+      });
+
+      body.innerHTML = items.map(it => {
+        const sep = it.origen.endsWith('/') ? '' : '/';
+        const fullPath = it.origen + sep + it.name;
+        return `
+        <div class="fs-item ${it.isDir ? 'is-dir' : 'is-file'}" data-name="${it.name}" data-isdir="${it.isDir}" data-origen="${it.origen}"${it.isDir ? ` data-focuspath="${fullPath}"` : ''}>
+          <div class="fs-glyph">${it.isDir ? '▤' : glifoDe(it.name)}</div>
+          <div class="fs-name">${it.name}</div>
+        </div>`;
+      }).join('');
+
+      body.querySelectorAll('.fs-item').forEach(el => {
+        const origenItem = el.dataset.origen;
+        const sep = origenItem.endsWith('/') ? '' : '/';
+        const fullPath = origenItem + sep + el.dataset.name;
+
+        el.addEventListener('dblclick', () => {
+          if (fsItemMovido) return; // evita abrir justo despues de soltar un arrastre
+          if (el.dataset.isdir === 'true') {
+            cargarCarpeta(fullPath, true);
+          } else {
+            abrirArchivo(origenItem, el.dataset.name);
+          }
+        });
+
+        el.addEventListener('contextmenu', (e) => {
+          e.preventDefault(); e.stopPropagation();
+          menuItem(e.pageX, e.pageY, { name: el.dataset.name, isDir: el.dataset.isdir === 'true', fullPath },
+                   () => cargarCarpeta(rutaActual, false));
+        });
+
+        el.addEventListener('mousedown', (e) => {
+          if (e.button !== 0) return; // solo click izquierdo
+          iniciarArrastreFS(el, {
+            nombre: el.dataset.name,
+            isDir: el.dataset.isdir === 'true',
+            origen: origenItem,
+            fullPath,
+          }, e);
+        });
+      });
+
+    } catch(e) {
+      body.innerHTML = `<div class="fs-error">No se pudo conectar.<br>${e.message}</div>`;
+    }
+  }
+
+  body.addEventListener('contextmenu', (e) => {
+    if (e.target.closest('.fs-item')) return; // ya lo maneja el listener del item
+    e.preventDefault();
+    e.stopPropagation(); // CLAVE: evita que el menu del Escritorio real sobreescriba este
+    // crear/pegar siempre va a la carpeta que estamos viendo realmente (incluida "/")
+    menuFondo(e.pageX, e.pageY, rutaActual, () => cargarCarpeta(rutaActual, false));
+  });
+
+  ventanasAbiertas[winId].refrescar = () => cargarCarpeta(rutaActual, false);
+
+  btnBack.addEventListener('click', () => {
+    if (!historial.length) return;
+    const prev = historial.pop();
+    cargarCarpeta(prev, false);
+  });
+
+  cargarCarpeta(rutaInicial, false);
+}
+
+function glifoDe(nombre) {
+  const t = tipoArchivo(nombre);
+  return { texto:'📄', imagen:'🖼', video:'▶', audio:'♪', pdf:'📋', html:'🌐', lex:'✦' }[t] || '▢';
+}
+
+// ══════════════════════════════════════════════════════
+//  ICONOS DEL ESCRITORIO (fijos + dinamicos desde /Desktop)
+// ══════════════════════════════════════════════════════
+const iconGrid = document.getElementById('icon-grid');
+// CELDA_W/H se calculan dinamicamente segun la escala de iconos actual
+function _getCeldaW() { return Math.round(120 * (window._iconScaleFactor || 1)); }
+function _getCeldaH() { return Math.round(125 * (window._iconScaleFactor || 1)); }
+
+// iconos fijos: siempre presentes, no vienen de la SD
+const ICONOS_FIJOS = [
+  { name: 'Home',       glyph: '⌂', clase: 'folder', ruta: '/Home' },
+  { name: 'Browser',    glyph: '🌐', clase: 'app',    ruta: 'browser' },
+  { name: 'Config',     glyph: '⚙', clase: 'app',    ruta: '/config' },
+];
+
+const RUTAS_ICONO = {}; // se llena dinamicamente con fijos + items de /Desktop
+
+let iconoArrastrado = null, offX = 0, offY = 0, celdaOrigen = null, iconoMovido = false;
+const ocupacion = {};
+
+const COLS_GRID = 6;
+
+function celdaDe(c, f) { return c + ',' + f; }
+function colFilaDesdeXY(x, y) {
+  const W = _getCeldaW(), H = _getCeldaH();
+  let col = Math.round(x / W);
+  col = Math.max(0, Math.min(COLS_GRID - 1, col));
+  const fila = Math.max(0, Math.round(y / H));
+  return { col, fila };
+}
+
+// busca la primera celda NO ocupada, recorriendo columna por columna
+// (columna 0 de arriba a abajo primero, asi se respeta el orden vertical por defecto)
+function siguienteCeldaLibre() {
+  const H = _getCeldaH();
+  const maxFilas = Math.max(4, Math.floor((iconGrid.clientHeight || 600) / H));
+  for (let col = 0; col < COLS_GRID; col++) {
+    for (let fila = 0; fila < maxFilas; fila++) {
+      if (!ocupacion[celdaDe(col, fila)]) return { col, fila };
+    }
+  }
+  let fila = maxFilas;
+  while (ocupacion[celdaDe(COLS_GRID - 1, fila)]) fila++;
+  return { col: COLS_GRID - 1, fila };
+}
+
+function posicionarIcono(icono, col, fila, animar) {
+  const W = _getCeldaW(), H = _getCeldaH();
+  icono.dataset.col  = col;
+  icono.dataset.fila = fila;
+  icono.style.transition = animar ? 'left 120ms ease, top 120ms ease' : 'none';
+  icono.style.left = (col * W) + 'px';
+  icono.style.top  = (fila * H) + 'px';
+  ocupacion[celdaDe(col, fila)] = icono;
+}
+
+function guardarPosicionesIconos() {
+  uiState.iconos = {};
+  iconGrid.querySelectorAll('.icon').forEach(ic => {
+    uiState.iconos[ic.dataset.name] = { col: +ic.dataset.col, fila: +ic.dataset.fila };
+  });
+  guardarEstadoUI();
+}
+
+// nombres internos (claves, NO se traducen) -> clave de traducción para mostrar
+const _ICON_LABEL_KEYS = { 'Home': 'icon.home', 'Config': 'icon.config', 'Papelera': 'icon.papelera', 'Browser': 'icon.browser' };
+function _labelDeIcono(name) {
+  const key = _ICON_LABEL_KEYS[name];
+  return key ? _t(key) : name;
+}
+
+function crearElementoIcono({ name, glyph, clase, isDir, ruta }) {
+  const div = document.createElement('div');
+  div.className = 'icon';
+  div.dataset.name = name;
+  if (isDir && ruta) div.dataset.focuspath = ruta; // hover aqui enfoca esta carpeta especifica
+  div.innerHTML = `
+    <div class="icon-glyph ${clase}">${glyph}</div>
+    <div class="icon-label">${_labelDeIcono(name)}</div>`;
+  adjuntarEventosIcono(div, { isDir });
+  return div;
+}
+
+function abrirIconoPorNombre(nombre, isDir) {
+  if (nombre === 'Papelera') return;
+  // Navegador
+  if (nombre === 'Browser') {
+    abrirBrowser();
+    return;
+  }
+  // intercept special apps
+  if (window._interceptarIcono && window._interceptarIcono(nombre)) return;
+  const ruta = RUTAS_ICONO[nombre];
+  if (ruta) {
+    if (isDir || (ICONOS_FIJOS.some(f => f.name === nombre))) {
+      abrirExplorador(ruta.endsWith('/') ? ruta.replace(/\/$/, '') || '/' : ruta, _labelDeIcono(nombre));
+    } else {
+      const partes = ruta.split('/');
+      const archivo = partes.pop();
+      const carpeta = partes.join('/') || '/';
+      abrirArchivo(carpeta, archivo);
+    }
+  }
+}
+
+function adjuntarEventosIcono(icono, { isDir } = {}) {
+  icono.addEventListener('click', () => {
+    iconGrid.querySelectorAll('.icon').forEach(i => i.classList.remove('selected'));
+    icono.classList.add('selected');
+  });
+
+  icono.addEventListener('dblclick', () => {
+    if (iconoMovido) return;
+    const nombre = icono.dataset.name;
+    registrarReciente(nombre, isDir || ICONOS_FIJOS.some(f => f.name === nombre));
+    abrirIconoPorNombre(nombre, isDir);
+  });
+
+  icono.addEventListener('contextmenu', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    const nombre = icono.dataset.name;
+    if (ICONOS_FIJOS.some(f => f.name === nombre) || nombre === 'Papelera') return; // los fijos no se editan
+    const fullPath = rutaUnir('/Desktop', nombre);
+    menuItem(e.pageX, e.pageY, { name: nombre, isDir: !!isDir, fullPath }, () => refrescarEscritorio());
+  });
+
+  icono.addEventListener('mousedown', (e) => {
+    iconoArrastrado = icono; iconoMovido = false;
+    const zoom = parseFloat(document.documentElement.style.zoom) || 1;
+    const r = icono.getBoundingClientRect();
+    offX = (e.clientX - r.left) / zoom; offY = (e.clientY - r.top) / zoom;
+    celdaOrigen = { col: +icono.dataset.col, fila: +icono.dataset.fila };
+    icono.style.transition = 'none'; icono.style.zIndex = 999998; // por encima de cualquier ventana mientras se arrastra
+  });
+}
+
+// reconstruye la grid completa: fijos + Papelera + contenido real de /Desktop
+async function refrescarEscritorio() {
+  let itemsDesktop = [];
+  try {
+    const r = await fetch('/api/files?path=' + encodeURIComponent('/Desktop'));
+    if (r.ok) {
+      const data = await r.json();
+      itemsDesktop = data.items || [];
+    }
+  } catch(e) { /* SD no disponible, mostramos solo los fijos */ }
+
+  iconGrid.innerHTML = '';
+  for (const k in RUTAS_ICONO) delete RUTAS_ICONO[k];
+  for (const k in ocupacion) delete ocupacion[k];
+
+  const definiciones = [];
+
+  ICONOS_FIJOS.forEach(f => {
+    RUTAS_ICONO[f.name] = f.ruta;
+    definiciones.push({ name: f.name, glyph: f.glyph, clase: f.clase, isDir: true, ruta: f.ruta });
+  });
+
+  itemsDesktop
+    .slice()
+    .sort((a,b) => { if (a.isDir !== b.isDir) return a.isDir ? -1 : 1; return a.name.localeCompare(b.name); })
+    .forEach(it => {
+      const rutaItem = rutaUnir('/Desktop', it.name);
+      RUTAS_ICONO[it.name] = rutaItem;
+      definiciones.push({
+        name: it.name,
+        glyph: it.isDir ? '▤' : glifoDe(it.name),
+        clase: it.isDir ? 'folder' : 'app',
+        isDir: it.isDir,
+        ruta: rutaItem,
+      });
+    });
+
+  RUTAS_ICONO['Papelera'] = null;
+  definiciones.push({ name: 'Papelera', glyph: '🗑', clase: 'trash', isDir: false });
+
+  // creamos todos los elementos primero, sin posicionar
+  const pendientes = definiciones.map(def => {
+    const el = crearElementoIcono(def);
+    iconGrid.appendChild(el);
+    return { el, def };
+  });
+
+  // 1ra pasada: los que tienen posicion guardada, se respeta tal cual (llena 'ocupacion')
+  pendientes.forEach(({ el, def }) => {
+    if (uiState.iconos && uiState.iconos[def.name]) {
+      const { col, fila } = uiState.iconos[def.name];
+      posicionarIcono(el, col, fila, false);
+    }
+  });
+
+  // 2da pasada: los que NO tienen posicion guardada (nuevos), van a la primera celda
+  // realmente libre -- asi nunca se superponen con uno ya existente
+  pendientes.forEach(({ el, def }) => {
+    if (!(uiState.iconos && uiState.iconos[def.name])) {
+      const libre = siguienteCeldaLibre();
+      posicionarIcono(el, libre.col, libre.fila, false);
+    }
+  });
+}
+
+function inicializarIconos() {
+  refrescarEscritorio();
+}
+
+document.addEventListener('mousemove', (e) => {
+  if (!iconoArrastrado) return;
+  iconoMovido = true;
+  arrastrandoAlgo = true;
+  iconoArrastrado.classList.add('dragging');
+  const zoom = parseFloat(document.documentElement.style.zoom) || 1;
+  const gr = iconGrid.getBoundingClientRect();
+  iconoArrastrado.style.left = (e.clientX / zoom - gr.left / zoom - offX) + 'px';
+  iconoArrastrado.style.top  = (e.clientY / zoom - gr.top  / zoom - offY) + 'px';
+});
+
+document.addEventListener('mouseup', async () => {
+  if (!iconoArrastrado) return;
+  const icono = iconoArrastrado;
+  icono.classList.remove('dragging');
+  icono.style.zIndex = '';
+  arrastrandoAlgo = false;
+  limpiarResaltadoDestino();
+
+  if (iconoMovido) {
+    const nombre   = icono.dataset.name;
+    const esFijo   = ICONOS_FIJOS.some(f => f.name === nombre) || nombre === 'Papelera';
+    const origenPath = RUTAS_ICONO[nombre];
+    const destino  = carpetaEnfocada;
+
+    // ¿se solto sobre una carpeta DISTINTA a donde ya esta el item? -> mover de verdad, como en Windows
+    if (!esFijo && destino && destino !== '/Desktop' && destino !== origenPath) {
+      try {
+        const dst = rutaUnir(destino, nombre);
+        const r = await fetch(`/api/move?src=${encodeURIComponent(origenPath)}&dst=${encodeURIComponent(dst)}`, { method: 'POST' });
+        if (!r.ok) await sysAlert(_t('msg.noMover', nombre, r.status), { tipo: 'error', titulo: _t('msg.tituloError') });
+      } catch(e) {
+        await sysAlert(_t('msg.noConectar'), { tipo: 'error', titulo: _t('msg.tituloSinConexion') });
+      }
+      delete ocupacion[celdaDe(celdaOrigen.col, celdaOrigen.fila)];
+      refrescarVistaDeCarpeta(destino);
+      refrescarEscritorio();
+    } else {
+      // se solto en el fondo del escritorio: solo reordenar la grilla (comportamiento original)
+      const x = parseFloat(icono.style.left);
+      const y = parseFloat(icono.style.top);
+      const dest = colFilaDesdeXY(x, y);
+      const clave = celdaDe(dest.col, dest.fila);
+      const ocupante = ocupacion[clave];
+
+      if (ocupante && ocupante !== icono) {
+        posicionarIcono(ocupante, celdaOrigen.col, celdaOrigen.fila, true);
+      } else if (!ocupante) {
+        delete ocupacion[celdaDe(celdaOrigen.col, celdaOrigen.fila)];
+      }
+      posicionarIcono(icono, dest.col, dest.fila, true);
+      guardarPosicionesIconos();
+    }
+  }
+
+  iconoArrastrado = null; celdaOrigen = null;
+  setTimeout(() => { iconoMovido = false; }, 50);
+});
+
+// ══════════════════════════════════════════════════════
+//  CONTEXT MENU — dinamico, con portapapeles
+// ══════════════════════════════════════════════════════
+const ctxMenu = document.getElementById('ctx-menu');
+let portapapeles = null; // { modo:'copiar'|'cortar', ruta, nombre, isDir }
+
+// ══════════════════════════════════════════════════════
+//  CARPETA ENFOCADA — vive solo en RAM, como en Windows:
+//  la carpeta sobre la que esta el mouse en este instante es
+//  la que recibe los "Pegar" / "Nuevo archivo" / "Nueva carpeta"
+//  hechos por teclado (Ctrl+V, etc). Si el mouse no esta sobre
+//  ninguna carpeta reconocida, cae por defecto al Escritorio.
+// ══════════════════════════════════════════════════════
+const FOCUS_DEFECTO = '/Desktop';
+let carpetaEnfocada = FOCUS_DEFECTO;
+
+// true mientras se esta arrastrando un icono del escritorio o un fs-item de un explorador
+// (lo activan icono.mousedown/fs-item.mousedown una vez que el mouse se mueve lo suficiente)
+let arrastrandoAlgo = false;
+let elementoResaltado = null;
+
+function limpiarResaltadoDestino() {
+  if (elementoResaltado) elementoResaltado.classList.remove('drop-target');
+  elementoResaltado = null;
+}
+
+// delegado: en cada movimiento de mouse, busca el elemento con
+// data-focuspath mas cercano (el mas especifico: un fs-item carpeta
+// o icono carpeta gana sobre el fondo de la ventana/escritorio que lo contiene)
+document.addEventListener('mousemove', (e) => {
+  const el = e.target.closest('[data-focuspath]');
+  carpetaEnfocada = el ? el.dataset.focuspath : FOCUS_DEFECTO;
+
+  if (arrastrandoAlgo) {
+    if (elementoResaltado !== el) {
+      limpiarResaltadoDestino();
+      if (el) { el.classList.add('drop-target'); elementoResaltado = el; }
+    }
+  }
+});
+// si el mouse sale por completo de la ventana del navegador, vuelve al default
+document.addEventListener('mouseleave', () => { carpetaEnfocada = FOCUS_DEFECTO; });
+
+// refresca la vista (ventana de explorador enfocada si existe, y siempre el escritorio real)
+function refrescarVistaDeCarpeta(ruta) {
+  for (const id in ventanasAbiertas) {
+    const info = ventanasAbiertas[id];
+    if (info.tipo === 'explorador' && info.ruta === ruta && info.refrescar) info.refrescar();
+  }
+  refrescarEscritorio();
+}
+
+// ══════════════════════════════════════════════════════
+//  ARRASTRAR ARCHIVOS/CARPETAS DENTRO DE UN EXPLORADOR
+//  (mover de verdad a otra carpeta o al escritorio, como en Windows)
+// ══════════════════════════════════════════════════════
+let arrastreFS = null;     // { nombre, isDir, origen, fullPath }
+let fsDragGhost = null;
+let fsDragInicio = null;   // { x, y } punto donde se hizo mousedown, para medir el umbral
+let fsItemMovido = false;  // true una vez que el arrastre superó el umbral (evita abrir por dblclick al soltar)
+
+function iniciarArrastreFS(el, info, ev) {
+  arrastreFS = info;
+  fsItemMovido = false;
+  fsDragInicio = { x: ev.clientX, y: ev.clientY };
+  arrastreFS._glyphHtml = el.querySelector('.fs-glyph') ? el.querySelector('.fs-glyph').innerHTML : (info.isDir ? '▤' : '▢');
+}
+
+document.addEventListener('mousemove', (e) => {
+  if (!arrastreFS) return;
+  const dx = e.clientX - fsDragInicio.x, dy = e.clientY - fsDragInicio.y;
+
+  if (!fsItemMovido && Math.hypot(dx, dy) > 6) {
+    fsItemMovido = true;
+    arrastrandoAlgo = true;
+    fsDragGhost = document.createElement('div');
+    fsDragGhost.className = 'fs-drag-ghost';
+    fsDragGhost.innerHTML = `<div class="fs-glyph">${arrastreFS._glyphHtml}</div><div class="fs-name">${arrastreFS.nombre}</div>`;
+    document.body.appendChild(fsDragGhost);
+  }
+
+  if (fsItemMovido && fsDragGhost) {
+    fsDragGhost.style.left = e.clientX + 'px';
+    fsDragGhost.style.top  = e.clientY + 'px';
+  }
+});
+
+document.addEventListener('mouseup', async () => {
+  if (!arrastreFS) return;
+  const info = arrastreFS;
+  arrastrandoAlgo = false;
+  limpiarResaltadoDestino();
+  if (fsDragGhost) { fsDragGhost.remove(); fsDragGhost = null; }
+
+  if (fsItemMovido) {
+    const destino = carpetaEnfocada;
+    const rutaSinSlash = info.fullPath.endsWith('/') ? info.fullPath.slice(0, -1) : info.fullPath;
+    const esMismoSitio = destino === info.origen;
+    const esASiMismaOSubcarpeta = info.isDir && (destino === rutaSinSlash || destino.startsWith(rutaSinSlash + '/'));
+
+    if (!esMismoSitio && !esASiMismaOSubcarpeta) {
+      try {
+        const dst = rutaUnir(destino, info.nombre);
+        const r = await fetch(`/api/move?src=${encodeURIComponent(info.fullPath)}&dst=${encodeURIComponent(dst)}`, { method: 'POST' });
+        if (!r.ok) await sysAlert(_t('msg.noMover', info.nombre, r.status), { tipo: 'error', titulo: _t('msg.tituloError') });
+      } catch(e) {
+        await sysAlert(_t('msg.noConectar'), { tipo: 'error', titulo: _t('msg.tituloSinConexion') });
+      }
+      refrescarVistaDeCarpeta(info.origen);
+      refrescarVistaDeCarpeta(destino);
+    }
+  }
+
+  arrastreFS = null;
+  setTimeout(() => { fsItemMovido = false; }, 50);
+});
+
+// ══════════════════════════════════════════════════════
+//  ARRASTRAR ARCHIVOS/CARPETAS DESDE EL PC (Windows/Linux/Mac)
+//  hacia el navegador, para SUBIRLOS a NanamyOS.
+//  Usa el mismo mecanismo de "carpetaEnfocada" / resaltado
+//  [data-focuspath].drop-target que ya usa el arrastre interno,
+//  asi que cae exactamente en la carpeta/ventana/escritorio
+//  que esta marcada en pantalla en ese instante.
+// ══════════════════════════════════════════════════════
+const osDropOverlay   = document.getElementById('os-drop-overlay');
+const osDropTargetName = document.getElementById('os-drop-target-name');
+const uploadToast      = document.getElementById('upload-toast');
+const uploadToastLabel = document.getElementById('upload-toast-label');
+const uploadToastFill  = document.getElementById('upload-toast-fill');
+
+let osDragDepth = 0; // contador de dragenter/dragleave (los hijos disparan leave/enter al navegar el arbol del DOM)
+
+// true si el evento de arrastre viene de fuera de la pagina (drag nativo del SO).
+// Nuestro propio drag interno de iconos/fs-items NO usa la API nativa de Drag&Drop del
+// navegador (es manual, con mousedown/mousemove), asi que cualquier evento dragenter/
+// dragover/drop que llegue aqui es, en la practica, siempre del sistema operativo.
+// En Linux (GTK/Nautilus, Wayland, etc.) el dataTransfer muchas veces NO incluye el tipo
+// "Files" hasta el momento exacto del drop (en dragenter/dragover solo trae "text/uri-list"
+// u otros), asi que NO podemos exigir 'Files' de antemano o el drag nunca arranca.
+function esDragDeArchivosDelSO(e) {
+  return !!(e.dataTransfer);
+}
+
+function actualizarNombreDestinoOverlay() {
+  osDropTargetName.textContent = carpetaEnfocada || FOCUS_DEFECTO;
+}
+
+window.addEventListener('dragenter', (e) => {
+  if (!esDragDeArchivosDelSO(e)) return;
+  e.preventDefault();
+  osDragDepth++;
+  osDropOverlay.classList.add('show');
+  actualizarNombreDestinoOverlay();
+});
+
+window.addEventListener('dragover', (e) => {
+  if (!esDragDeArchivosDelSO(e)) return;
+  e.preventDefault(); // imprescindible: si no, el navegador abre el archivo en vez de soltar
+  e.dataTransfer.dropEffect = 'copy';
+
+  // reusa el mismo "foco" que el resto del sistema: el elemento [data-focuspath]
+  // mas especifico bajo el cursor (fs-item carpeta > icono carpeta > fondo de ventana/escritorio)
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const focoEl = el ? el.closest('[data-focuspath]') : null;
+  carpetaEnfocada = focoEl ? focoEl.dataset.focuspath : FOCUS_DEFECTO;
+
+  if (elementoResaltado !== focoEl) {
+    limpiarResaltadoDestino();
+    if (focoEl) { focoEl.classList.add('drop-target'); elementoResaltado = focoEl; }
+  }
+  actualizarNombreDestinoOverlay();
+});
+
+window.addEventListener('dragleave', (e) => {
+  if (!esDragDeArchivosDelSO(e)) return;
+  osDragDepth = Math.max(0, osDragDepth - 1);
+  if (osDragDepth === 0) {
+    osDropOverlay.classList.remove('show');
+    limpiarResaltadoDestino();
+  }
+});
+
+window.addEventListener('drop', async (e) => {
+  if (!esDragDeArchivosDelSO(e)) return;
+  e.preventDefault();
+  osDragDepth = 0;
+  osDropOverlay.classList.remove('show');
+
+  const destino = carpetaEnfocada || FOCUS_DEFECTO;
+  limpiarResaltadoDestino();
+
+  const entradas = await leerEntradasDataTransfer(e.dataTransfer);
+  if (entradas.length === 0) return;
+
+  await subirEntradas(entradas, destino);
+  refrescarVistaDeCarpeta(destino);
+});
+
+// ── lee los items soltados, incluyendo carpetas completas (vía webkitGetAsEntry) ──
+function leerEntradasDataTransfer(dataTransfer) {
+  const items = dataTransfer.items;
+  const promesas = [];
+
+  if (items && items.length && items[0].webkitGetAsEntry) {
+    for (let i = 0; i < items.length; i++) {
+      const entry = items[i].webkitGetAsEntry && items[i].webkitGetAsEntry();
+      if (entry) {
+        promesas.push(recorrerEntry(entry, ''));
+      } else if (items[i].getAsFile) {
+        // en algunos navegadores/file-managers de Linux, webkitGetAsEntry()
+        // devuelve null aunque el item si sea un archivo real: usamos getAsFile() como respaldo
+        const f = items[i].getAsFile();
+        if (f) promesas.push(Promise.resolve([{ file: f, relPath: f.name }]));
+      }
+    }
+    return Promise.all(promesas).then(arrs => arrs.flat());
+  }
+
+  // fallback: navegadores sin soporte de entries, solo archivos sueltos (sin carpetas)
+  const archivos = Array.from(dataTransfer.files || []);
+  return Promise.resolve(archivos.map(f => ({ file: f, relPath: f.name })));
+}
+
+// recorre recursivamente un FileSystemEntry (archivo o carpeta) y devuelve
+// una lista plana de { file, relPath } donde relPath conserva la subcarpeta
+function recorrerEntry(entry, prefijo) {
+  return new Promise((resolve) => {
+    if (entry.isFile) {
+      entry.file(file => resolve([{ file, relPath: prefijo + entry.name }]));
+    } else if (entry.isDirectory) {
+      const reader = entry.createReader();
+      const todos = [];
+      function leerLote() {
+        reader.readEntries(async (lote) => {
+          if (!lote.length) {
+            resolve(todos);
+            return;
+          }
+          for (const sub of lote) {
+            const r = await recorrerEntry(sub, prefijo + entry.name + '/');
+            todos.push(...r);
+          }
+          leerLote(); // readEntries puede devolver en varios lotes, hay que seguir pidiendo
+        });
+      }
+      leerLote();
+    } else {
+      resolve([]);
+    }
+  });
+}
+
+// ── sube la lista de { file, relPath } a la carpeta destino, una por una,
+//    mostrando progreso en el toast inferior ──
+async function subirEntradas(entradas, destino) {
+  uploadToast.classList.add('show');
+  let fallos = 0;
+
+  for (let i = 0; i < entradas.length; i++) {
+    const { file, relPath } = entradas[i];
+    uploadToastLabel.textContent = _t('msg.subiendo', i + 1, entradas.length, relPath);
+    uploadToastFill.style.width = Math.round((i / entradas.length) * 100) + '%';
+
+    try {
+      const destinoPath = rutaUnir(destino, relPath);
+      const fd = new FormData();
+      fd.append('path', destinoPath);
+      fd.append('file', file, file.name);
+      const r = await fetch('/api/upload', { method: 'POST', body: fd });
+      if (!r.ok) {
+        fallos++;
+        await sysAlert(_t('msg.noSubir', relPath, r.status), { tipo: 'error', titulo: _t('msg.tituloError') });
+      }
+    } catch (e) {
+      fallos++;
+      await sysAlert(_t('msg.noConectar'), { tipo: 'error', titulo: _t('msg.tituloSinConexion') });
+      break; // si se perdio la conexion, no insistir con el resto de la cola
+    }
+  }
+
+  uploadToastFill.style.width = '100%';
+  setTimeout(() => { uploadToast.classList.remove('show'); }, 400);
+}
+
+document.addEventListener('keydown', async (e) => {
+  // ignorar atajos mientras se escribe en un input/textarea (editor de texto, modales, prompts)
+  const tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea') return;
+  if (!(e.ctrlKey || e.metaKey)) return;
+
+  const k = e.key.toLowerCase();
+  if (k !== 'c' && k !== 'x' && k !== 'v') return;
+
+  const icono = iconGrid.querySelector('.icon.selected');
+  e.preventDefault();
+
+  if (k === 'v') {
+    if (!portapapeles) return;
+    await pegarEn(carpetaEnfocada);
+    refrescarVistaDeCarpeta(carpetaEnfocada);
+    return;
+  }
+
+  // copiar / cortar via teclado: necesita un icono seleccionado en el escritorio real
+  if (!icono) return;
+  const nombre = icono.dataset.name;
+  if (nombre === 'Papelera' || ICONOS_FIJOS.some(f => f.name === nombre)) return;
+  const fullPath = rutaUnir('/Desktop', nombre);
+  portapapeles = { modo: k === 'c' ? 'copiar' : 'cortar', ruta: fullPath, nombre, isDir: RUTAS_ICONO[nombre] !== undefined };
+});
+
+function mostrarCtxMenuGenerico(x, y, items) {
+  ctxMenu.innerHTML = items.map((it, idx) =>
+    it.sep ? `<div class="ctx-sep"></div>`
+           : `<div class="ctx-item${it.peligro ? ' ctx-item-danger' : ''}" data-idx="${idx}">${it.label}</div>`
+  ).join('');
+
+  // x/y vienen de e.pageX/pageY que son coords visuales (ya escaladas por el zoom del <html>).
+  // style.left/top son coords logicas (sin zoom), asi que hay que dividir por el zoom.
+  const zoom = parseFloat(document.documentElement.style.zoom) || 1;
+  const lx = x / zoom, ly = y / zoom;
+  ctxMenu.style.left = lx + 'px';
+  ctxMenu.style.top  = ly + 'px';
+  ctxMenu.classList.add('show');
+  const r = ctxMenu.getBoundingClientRect();
+  // getBoundingClientRect devuelve coords visuales, compararlas con innerWidth/Height (tambien visuales)
+  if (r.right  > window.innerWidth)  ctxMenu.style.left = Math.max(4, (window.innerWidth  - r.width)  / zoom - 4) + 'px';
+  if (r.bottom > window.innerHeight) ctxMenu.style.top  = Math.max(4, (window.innerHeight - r.height) / zoom - 4) + 'px';
+
+  ctxMenu.querySelectorAll('.ctx-item').forEach(elI => {
+    elI.addEventListener('click', () => {
+      const idx = +elI.dataset.idx;
+      ctxMenu.classList.remove('show');
+      if (items[idx].accion) items[idx].accion();
+    });
+  });
+}
+
+function rutaUnir(carpeta, nombre) {
+  return carpeta + (carpeta.endsWith('/') ? '' : '/') + nombre;
+}
+
+// refresca tanto el explorador que la invoque como los iconos del escritorio real
+function refrescarTodo(refrescar) {
+  refrescar && refrescar();
+  refrescarEscritorio();
+}
+
+// Menu sobre el fondo de una carpeta (o del escritorio, usando '/Desktop')
+function menuFondo(x, y, rutaCarpeta, refrescar) {
+  const items = [
+    { label: _t('ctx.nuevaCarpeta'), accion: async () => {
+        const nombre = await sysPrompt(_t('prompt.nombreCarpeta'), '', { titulo: _t('prompt.tituloNuevaCarpeta') });
+        if (!nombre) return;
+        try { await fetch('/api/mkdir?path=' + encodeURIComponent(rutaUnir(rutaCarpeta, nombre)), { method: 'POST' }); }
+        catch(e) { await sysAlert(_t('msg.noCrearCarpeta'), { tipo: 'error', titulo: _t('msg.tituloError') }); }
+        refrescarTodo(refrescar);
+      } },
+    { label: _t('ctx.nuevoArchivo'), accion: async () => {
+        const nombre = await sysPrompt(_t('prompt.nombreArchivo'), '', { titulo: _t('prompt.tituloNuevoArchivo') });
+        if (!nombre) return;
+        try { await fetch('/api/newfile?path=' + encodeURIComponent(rutaUnir(rutaCarpeta, nombre)), { method: 'POST' }); }
+        catch(e) { await sysAlert(_t('msg.noCrearArchivo'), { tipo: 'error', titulo: _t('msg.tituloError') }); }
+        refrescarTodo(refrescar);
+      } },
+  ];
+
+  if (portapapeles) {
+    items.push({ sep: true });
+    items.push({ label: _t('ctx.pegar', portapapeles.nombre), accion: async () => {
+        await pegarEn(rutaCarpeta);
+        refrescarTodo(refrescar);
+      } });
+  }
+
+  items.push({ sep: true });
+  items.push({ label: _t('ctx.actualizar'), accion: () => refrescarTodo(refrescar) });
+  mostrarCtxMenuGenerico(x, y, items);
+}
+
+// ejecuta el pegado del portapapeles en rutaDestinoCarpeta
+async function pegarEn(rutaDestinoCarpeta) {
+  if (!portapapeles) return;
+  const dest = rutaUnir(rutaDestinoCarpeta, portapapeles.nombre);
+  const endpoint = portapapeles.modo === 'copiar' ? '/api/copy' : '/api/move';
+  try {
+    const r = await fetch(`${endpoint}?src=${encodeURIComponent(portapapeles.ruta)}&dst=${encodeURIComponent(dest)}`, { method: 'POST' });
+    if (!r.ok) {
+      const accionTxt = portapapeles.modo === 'copiar' ? _t('msg.copiar') : _t('msg.mover');
+      await sysAlert(_t('msg.noCopiarMover', accionTxt, portapapeles.nombre, r.status), { tipo: 'error', titulo: _t('msg.tituloError') });
+      return;
+    }
+  } catch(e) {
+    await sysAlert(_t('msg.noConectar'), { tipo: 'error', titulo: _t('msg.tituloSinConexion') });
+    return;
+  }
+  if (portapapeles.modo === 'cortar') portapapeles = null;
+}
+
+// Menu sobre un archivo o carpeta especifico dentro de un explorador
+function menuItem(x, y, item, refrescar) {
+  const items = [
+    { label: _t('ctx.copiar'), accion: () => {
+        portapapeles = { modo: 'copiar', ruta: item.fullPath, nombre: item.name, isDir: item.isDir };
+      } },
+    { label: _t('ctx.cortar'), accion: () => {
+        portapapeles = { modo: 'cortar', ruta: item.fullPath, nombre: item.name, isDir: item.isDir };
+      } },
+  ];
+
+  if (!item.isDir) {
+    items.push({ label: _t('ctx.descargar'), accion: () => descargarArchivo(item.fullPath, item.name) });
+  }
+
+  if (portapapeles && item.isDir) {
+    items.push({ label: _t('ctx.pegarAqui', portapapeles.nombre), accion: async () => {
+        await pegarEn(item.fullPath);
+        refrescarTodo(refrescar);
+      } });
+  }
+
+  items.push({ sep: true });
+  items.push({ label: _t('ctx.renombrar'), accion: async () => {
+      const nuevo = await sysPrompt(_t('prompt.nuevoNombre'), item.name, { titulo: _t('prompt.tituloRenombrar') });
+      if (!nuevo || nuevo === item.name) return;
+      try {
+        const r = await fetch(`/api/rename?path=${encodeURIComponent(item.fullPath)}&name=${encodeURIComponent(nuevo)}`, { method: 'POST' });
+        if (!r.ok) await sysAlert(_t('msg.noRenombrar'), { tipo: 'error', titulo: _t('msg.tituloError') });
+      } catch(e) { await sysAlert(_t('msg.noConectar'), { tipo: 'error', titulo: _t('msg.tituloSinConexion') }); }
+      refrescarTodo(refrescar);
+    } });
+
+  items.push({ label: _t('ctx.eliminar'), peligro: true, accion: async () => {
+      const ok = await sysConfirm(
+        _t('msg.eliminarConfirm', item.name),
+        { titulo: _t('msg.tituloEliminar'), tipo: 'warn', textoOk: _t('ctx.eliminar'), peligro: true }
+      );
+      if (!ok) return;
+      try {
+        const r = await fetch(`/api/delete?path=${encodeURIComponent(item.fullPath)}`, { method: 'POST' });
+        if (!r.ok) await sysAlert(_t('msg.noEliminar'), { tipo: 'error', titulo: _t('msg.tituloError') });
+      } catch(e) { await sysAlert(_t('msg.noConectar'), { tipo: 'error', titulo: _t('msg.tituloSinConexion') }); }
+      refrescarTodo(refrescar);
+    } });
+
+  mostrarCtxMenuGenerico(x, y, items);
+}
+
+desktop.addEventListener('contextmenu', (e) => {
+  if (e.target.closest('.icon')) return; // lo maneja el listener del icono
+  e.preventDefault();
+  const items = [
+    { label: _t('ctx.nuevaCarpeta'), accion: async () => {
+        const nombre = await sysPrompt(_t('prompt.nombreCarpeta'), '', { titulo: _t('prompt.tituloNuevaCarpeta') });
+        if (!nombre) return;
+        try { await fetch('/api/mkdir?path=' + encodeURIComponent(rutaUnir('/Desktop', nombre)), { method: 'POST' }); }
+        catch(e) {}
+        refrescarEscritorio();
+      } },
+    { label: _t('ctx.nuevoArchivo'), accion: async () => {
+        const nombre = await sysPrompt(_t('prompt.nombreArchivo'), '', { titulo: _t('prompt.tituloNuevoArchivo') });
+        if (!nombre) return;
+        try { await fetch('/api/newfile?path=' + encodeURIComponent(rutaUnir('/Desktop', nombre)), { method: 'POST' }); }
+        catch(e) {}
+        refrescarEscritorio();
+      } },
+  ];
+  if (portapapeles) {
+    items.push({ sep: true });
+    items.push({ label: _t('ctx.pegar', portapapeles.nombre), accion: async () => {
+        await pegarEn('/Desktop');
+        refrescarEscritorio();
+      } });
+  }
+  items.push({ sep: true });
+  items.push({ label: _t('ctx.actualizarEscritorio'), accion: () => refrescarEscritorio() });
+  items.push({ label: _t('ctx.acercaDe'), accion: () => sysAlert(_t('msg.acercaTexto'), { titulo: _t('msg.tituloAcerca') }) });
+  mostrarCtxMenuGenerico(e.pageX, e.pageY, items);
+});
+
+document.addEventListener('click', (e) => {
+  if (!ctxMenu.contains(e.target)) ctxMenu.classList.remove('show');
+});
+
+desktop.addEventListener('click', (e) => {
+  if (e.target === desktop) iconGrid.querySelectorAll('.icon').forEach(i => i.classList.remove('selected'));
+});
+
+// ══════════════════════════════════════════════════════
+//  START MENU
+// ══════════════════════════════════════════════════════
+const startMenu = document.getElementById('start-menu');
+const startBtn  = document.getElementById('start-btn');
+
+startBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  startMenu.classList.toggle('show');
+});
+document.addEventListener('click', (e) => {
+  if (!startMenu.contains(e.target) && !startBtn.contains(e.target))
+    startMenu.classList.remove('show');
+});
+document.getElementById('fullscreen-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  } else {
+    document.exitFullscreen().catch(() => {});
+  }
+});
+
+document.getElementById('power-btn').addEventListener('click', () => {
+  startMenu.classList.remove('show');
+});
+
+// ══════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════
+Promise.all([cargarEstadoUI(), cargarMarcadores()]).then(() => {
+  _retraducirUI(); // sincroniza el idioma guardado con la UI desde el primer load
+  inicializarIconos();
+});
+
+// ══════════════════════════════════════════════════════
+//  APP: SETTINGS — NanamyOS
+// ══════════════════════════════════════════════════════
+function abrirAppSettings() {
+  const winId = 'app_settings';
+  if (ventanasAbiertas[winId]) {
+    ventanasAbiertas[winId].el.classList.add('show');
+    traerAlFrente(ventanasAbiertas[winId].el);
+    return;
+  }
+
+  const win = crearVentana({ id: winId, titulo: _t('settings.titulo'), icono: '⚙', ancho: 500, alto: 430, i18nKey: 'settings.titulo' });
+  ventanasAbiertas[winId] = { el: win, tipo: 'settings', ruta: null };
+
+  const bodyEl = document.createElement('div');
+  bodyEl.className = 'settings-body';
+
+  win.insertBefore(bodyEl, win.querySelector('.resize-handle'));
+
+  function renderSettings() {
+    bodyEl.innerHTML = '';
+
+    // Sección: Dispositivo
+    const secHw = document.createElement('div');
+    secHw.className = 'settings-section-title';
+    secHw.textContent = _t('settings.hardware');
+    bodyEl.appendChild(secHw);
+
+    const infoBlock = document.createElement('div');
+    infoBlock.className = 'settings-info-block';
+    infoBlock.innerHTML = `
+      <div>${_t('settings.dispositivo')} <span>RG Rotate</span></div>
+      <div>${_t('settings.proyecto')} <span>NanamyOS v1</span></div>
+      <div>${_t('settings.creador')} <span>Jorge Rios</span></div>
+    `;
+    bodyEl.appendChild(infoBlock);
+
+    // Sección: Idioma
+    const secIdioma = document.createElement('div');
+    secIdioma.className = 'settings-section-title';
+    secIdioma.textContent = 'Idioma / Language';
+    bodyEl.appendChild(secIdioma);
+
+    const rowIdioma = document.createElement('div');
+    rowIdioma.className = 'settings-row';
+
+    const lblIdioma = document.createElement('div');
+    lblIdioma.className = 'settings-row-label';
+    lblIdioma.innerHTML = `${_t('settings.idioma')}<div class="settings-row-sub">${_t('settings.idiomaSub')}</div>`;
+
+    const segIdioma = document.createElement('div');
+    segIdioma.className = 'settings-segment';
+    const idiomas = [
+      { code: 'es', label: _t('settings.idiomaES') },
+      { code: 'en', label: _t('settings.idiomaEN') },
+    ];
+    idiomas.forEach(({ code, label }) => {
+      const btn = document.createElement('div');
+      btn.className = 'settings-segment-opt' + (window._idioma === code ? ' active' : '');
+      btn.textContent = label;
+      btn.dataset.lang = code;
+      btn.addEventListener('click', () => {
+        if (window._idioma === code) return;
+        _setIdioma(code);
+        // re-renderizar este mismo panel ya traducido
+        renderSettings();
+        win.querySelector('.win-title').textContent = _t('settings.titulo');
+      });
+      segIdioma.appendChild(btn);
+    });
+
+    rowIdioma.appendChild(lblIdioma);
+    rowIdioma.appendChild(segIdioma);
+    bodyEl.appendChild(rowIdioma);
+
+    // Sección: Apariencia
+    const secAp = document.createElement('div');
+    secAp.className = 'settings-section-title';
+    secAp.textContent = window._idioma === 'en' ? 'Appearance' : 'Apariencia';
+    bodyEl.appendChild(secAp);
+
+    // Tamaño de iconos
+    const rowEscala = document.createElement('div');
+    rowEscala.className = 'settings-row';
+
+    const lblEscala = document.createElement('div');
+    lblEscala.className = 'settings-row-label';
+    lblEscala.innerHTML = `${_t('settings.escala')}<div class="settings-row-sub">${_t('settings.escalaSub')}</div>`;
+
+    const segEscala = document.createElement('div');
+    segEscala.className = 'settings-segment';
+    segEscala.style.minWidth = '0';
+
+    const OPCIONES_ESCALA = [
+      { factor: 1,    label: 'x1' },
+      { factor: 1.15, label: 'x1.15' },
+      { factor: 1.25, label: 'x1.25' },
+      { factor: 1.5,  label: 'x1.50' },
+      { factor: 2,    label: 'x2' },
+    ];
+
+    const escalaActual = _getEscalaIconos();
+    OPCIONES_ESCALA.forEach(({ factor, label }) => {
+      const btn = document.createElement('div');
+      btn.className = 'settings-segment-opt' + (Math.abs(escalaActual - factor) < 0.01 ? ' active' : '');
+      btn.textContent = label;
+      btn.style.padding = '10px 12px';
+      btn.addEventListener('click', () => {
+        segEscala.querySelectorAll('.settings-segment-opt').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        try { localStorage.setItem(ESCALA_ICONO_KEY, factor); } catch(e) {}
+        aplicarEscalaIconos(factor);
+        // reposicionar iconos del escritorio con las nuevas celdas
+        for (const k in ocupacion) delete ocupacion[k];
+        iconGrid.querySelectorAll('.icon').forEach(ic => {
+          const col = +ic.dataset.col, fila = +ic.dataset.fila;
+          posicionarIcono(ic, col, fila, true);
+        });
+      });
+      segEscala.appendChild(btn);
+    });
+
+    rowEscala.appendChild(lblEscala);
+    rowEscala.appendChild(segEscala);
+    bodyEl.appendChild(rowEscala);
+
+    // Sección: IA
+    const secAI = document.createElement('div');
+    secAI.className = 'settings-section-title';
+    secAI.textContent = 'AI';
+    bodyEl.appendChild(secAI);
+
+    const rowAI = document.createElement('div');
+    rowAI.className = 'settings-row';
+    rowAI.style.flexDirection = 'column';
+    rowAI.style.alignItems = 'flex-start';
+    rowAI.style.gap = '10px';
+
+    const lblAI = document.createElement('div');
+    lblAI.className = 'settings-row-label';
+    lblAI.innerHTML = `${_t('settings.aiPersona')}<div class="settings-row-sub">${_t('settings.aiPersonaSub')}</div>`;
+
+    const txtAI = document.createElement('textarea');
+    txtAI.className = 'sys-modal-input'; // reutilizar estilo
+    txtAI.style.width = '100%';
+    txtAI.style.minHeight = '80px';
+    txtAI.style.marginTop = '4px';
+    txtAI.style.fontFamily = 'var(--font-ui)';
+    txtAI.style.fontSize = '12px';
+    txtAI.value = localStorage.getItem('nanamyos_ai_persona') || 'You are Nanamy, a helpful AI assistant integrated into the OS desktop. DO NOT use emojis.';
+
+    txtAI.addEventListener('change', () => {
+      localStorage.setItem('nanamyos_ai_persona', txtAI.value);
+    });
+
+    rowAI.appendChild(lblAI);
+    rowAI.appendChild(txtAI);
+    bodyEl.appendChild(rowAI);
+  }
+
+  // Render inicial
+  renderSettings();
+}
+
+// Helper: fila con slider
+function crearRowSlider(titulo, sub, min, max, valor, onChange) {
+  const row = document.createElement('div');
+  row.className = 'settings-row';
+
+  const lbl = document.createElement('div');
+  lbl.className = 'settings-row-label';
+  lbl.innerHTML = `${titulo}<div class="settings-row-sub">${sub}</div>`;
+
+  const val = document.createElement('div');
+  val.className = 'settings-value';
+  val.textContent = valor;
+
+  const sl = document.createElement('input');
+  sl.type = 'range';
+  sl.className = 'settings-slider';
+  sl.min = min; sl.max = max; sl.value = valor;
+
+  let debTimer = null;
+  sl.addEventListener('input', () => {
+    val.textContent = sl.value;
+    clearTimeout(debTimer);
+    debTimer = setTimeout(() => onChange(sl.value), 250);
+  });
+
+  row.appendChild(lbl);
+  row.appendChild(val);
+  row.appendChild(sl);
+  return row;
+}
+
+// ══════════════════════════════════════════════════════
+//  OVERRIDE de doble-click para iconos especiales
+// ══════════════════════════════════════════════════════
+const _origAdjuntarEventos = adjuntarEventosIcono;
+
+// Parchar abrirExplorador para interceptar Config
+const _origAbrirExplorador = abrirExplorador;
+window._interceptarIcono = function(nombre) {
+  if (nombre === 'Config') { abrirAppSettings(); return true; }
+  return false;
+};
+
+
+// ══════════════════════════════════════════════════════
+//  MODO MÓVIL — detección automática por aspect ratio
+//  Activa cuando: ancho < alto (portrait) O ratio < 0.75
+//  Desactiva cuando: ratio > 0.85 (landscape con espacio)
+//  También bloquea drag/resize de ventanas en móvil.
+// ══════════════════════════════════════════════════════
+(function() {
+  const UMBRAL_ACTIVAR   = 0.75;  // ratio w/h para activar móvil
+  const UMBRAL_DESACTIVAR = 0.90; // ratio w/h para volver a PC
+
+  let modoMovil = false;
+
+  function aplicarModoMovil(activar) {
+    if (activar === modoMovil) return;
+    modoMovil = activar;
+    document.body.classList.toggle('mobile', activar);
+
+    if (activar) {
+      // En móvil: todas las ventanas abiertas se maximizan
+      document.querySelectorAll('.window.show').forEach(win => {
+        win.classList.add('maximized');
+      });
+      // Iconos del escritorio: forzar escala grande
+      aplicarEscalaIconos(1.5);
+    } else {
+      // Al volver a PC: restaurar ventanas (quitar maximized forzado)
+      document.querySelectorAll('.window.maximized').forEach(win => {
+        win.classList.remove('maximized');
+      });
+      // Restaurar escala de iconos guardada
+      aplicarEscalaIconos(_getEscalaIconos());
+    }
+  }
+
+  function detectar() {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const ratio = w / h;
+    if (!modoMovil && ratio < UMBRAL_ACTIVAR)   aplicarModoMovil(true);
+    if (modoMovil  && ratio > UMBRAL_DESACTIVAR) aplicarModoMovil(false);
+  }
+
+  // Detectar al cargar y en cada resize/rotación
+  detectar();
+  window.addEventListener('resize', detectar);
+
+  // En móvil, las ventanas nuevas deben abrirse maximizadas
+  // Parcheamos crearVentana para que en modo móvil siempre maximice
+  const _origCrearVentana = crearVentana;
+  window.crearVentana = function(opts) {
+    const win = _origCrearVentana(opts);
+    if (modoMovil && win) win.classList.add('maximized');
+    return win;
+  };
+
+  // Deshabilitar drag de titlebar en móvil (el titlebar usa mousedown nativo)
+  // Lo hacemos interceptando el evento en la fase de captura
+  document.addEventListener('mousedown', function(e) {
+    if (!modoMovil) return;
+    const tb = e.target.closest('.window-titlebar');
+    if (tb && !e.target.closest('.win-btn')) {
+      e.stopImmediatePropagation();
+    }
+  }, true);
+
+  // Deshabilitar resize handle en móvil
+  document.addEventListener('mousedown', function(e) {
+    if (!modoMovil) return;
+    if (e.target.closest('.resize-handle')) e.stopImmediatePropagation();
+  }, true);
+
+  // Manejar apertura automática del navegador vía URL param
+  (function handleDeepLink() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetUrl = urlParams.get('open_browser');
+    if (targetUrl) {
+      // Pequeño delay para asegurar que el sistema está listo
+      setTimeout(() => abrirBrowser(targetUrl), 500);
+      // Limpiar la URL para que no se reabra al recargar
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  })();
+
+  // ── NANAMY AI LOGIC ──
+  const nanamyAiPanel = document.getElementById('nanamy-ai-panel');
+  const nanamyAiBtn = document.getElementById('nanamy-ai-btn');
+  const nanamyAiChat = document.getElementById('nanamy-ai-chat');
+  const nanamyAiInput = document.getElementById('nanamy-ai-input');
+  const nanamyAiSend = document.getElementById('nanamy-ai-send');
+
+  window.toggleNanamyAi = function() {
+    const isShowing = nanamyAiPanel.classList.toggle('show');
+    nanamyAiBtn.classList.toggle('active', isShowing);
+    if (isShowing) {
+      if (nanamyAiChat.children.length === 0) {
+        addMsg(_t('ai.welcome'), 'ai');
+      }
+      nanamyAiInput.focus();
+    }
+  };
+
+  nanamyAiBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleNanamyAi();
+  });
+
+  async function enviarMensajeNanamyAi() {
+    const texto = nanamyAiInput.value.trim();
+    if (!texto) return;
+
+    nanamyAiInput.value = '';
+    addMsg(texto, 'user');
+
+    const aiDiv = addMsg(_t('ai.thinking'), 'ai');
+
+    try {
+      const persona = localStorage.getItem('nanamyos_ai_persona') || '';
+      const r = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: texto, persona: persona })
+      });
+      const data = await r.json();
+      aiDiv.textContent = data.response || 'Sin respuesta';
+    } catch(e) {
+      aiDiv.textContent = _t('ai.error');
+    }
+    nanamyAiChat.scrollTop = nanamyAiChat.scrollHeight;
+  }
+
+  function addMsg(text, role) {
+    const div = document.createElement('div');
+    div.className = 'chat-msg ' + role;
+    div.textContent = text;
+    nanamyAiChat.appendChild(div);
+    nanamyAiChat.scrollTop = nanamyAiChat.scrollHeight;
+    return div;
+  }
+
+  nanamyAiSend.addEventListener('click', enviarMensajeNanamyAi);
+  nanamyAiInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') enviarMensajeNanamyAi();
+  });
+
+  // Cerrar si se hace clic fuera del panel (opcional)
+  document.addEventListener('click', (e) => {
+    if (nanamyAiPanel.classList.contains('show') &&
+        !nanamyAiPanel.contains(e.target) &&
+        !nanamyAiBtn.contains(e.target)) {
+      toggleNanamyAi();
+    }
+  });
+
+})();
+</script>
+</body>
+</html>
