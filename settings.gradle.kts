@@ -25,3 +25,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "NanamyLauncher"
 include(":app")
+include(":connect")
+project(":connect").projectDir = file("../NanamyConnect/app")

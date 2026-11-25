@@ -158,6 +158,10 @@ class NanamyOsServer(private val context: Context, port: Int = 8080) : NanoHTTPD
             uri.startsWith("/api/bookmarks/load") -> handleBookmarksLoad()
             uri.startsWith("/api/bookmarks/save") -> handleBookmarksSave(session)
             uri.startsWith("/api/ai/chat") -> handleNanamyAiChat(session)
+            uri.startsWith("/api/settings/get") -> handleSettingsGet()
+            uri.startsWith("/api/settings/update") -> handleSettingsUpdate(session)
+            uri.startsWith("/api/notifications/relay") -> handleNotificationRelay(session)
+            uri.startsWith("/api/control/action") -> handleControlAction(session)
             uri.startsWith("/api/shutdown") -> { android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ stop() }, 500); okResponse() }
             else -> {
                 if (session.method == Method.POST) try { session.parseBody(HashMap()) } catch (e: Exception) {}
@@ -614,6 +618,113 @@ class NanamyOsServer(private val context: Context, port: Int = 8080) : NanoHTTPD
     private fun jsonResponse(j: JSONObject): Response = newFixedLengthResponse(Response.Status.OK, "application/json", j.toString())
     private fun okResponse(): Response = newFixedLengthResponse(Response.Status.OK, "text/plain", "OK")
     private fun errorResponse(m: String): Response = newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", m)
+
+    private fun handleSettingsGet(): Response {
+        val repo = (context.applicationContext as com.nanamy.launcher.NanamyApplication).settingsRepository
+        val json = JSONObject().apply {
+            put("aiProvider", repo.aiProvider)
+            put("groqApiKey", repo.groqApiKey)
+            put("geminiKeysJson", repo.geminiKeysJson)
+            put("groqModel", repo.groqModel)
+            put("systemPrompt", repo.systemPrompt)
+            put("userPersonaPrompt", repo.userPersonaPrompt)
+            put("ttsSpeechRate", repo.ttsSpeechRate)
+            put("ttsPitch", repo.ttsPitch)
+            put("themeMode", repo.themeMode)
+            put("eyesColor", repo.eyesColor)
+            put("widgetMusicEnabled", repo.widgetMusicEnabled)
+            put("widgetWeatherEnabled", repo.widgetWeatherEnabled)
+            put("widgetNotesEnabled", repo.widgetNotesEnabled)
+            put("widgetCalendarEnabled", repo.widgetCalendarEnabled)
+            put("widgetMessagesEnabled", repo.widgetMessagesEnabled)
+            put("localLlmEnabled", repo.localLlmEnabled)
+            put("localLlmModelPath", repo.localLlmModelPath)
+            put("restModeHotword", repo.restModeHotword)
+            put("restModeVolume", repo.restModeVolume)
+            put("restModeHandsFreeEnabled", repo.restModeHandsFreeEnabled)
+            put("widgetOrderJson", repo.widgetOrderJson)
+        }
+        return jsonResponse(json)
+    }
+
+    private fun handleSettingsUpdate(session: IHTTPSession): Response = try {
+        val body = readPostBody(session)
+        val json = JSONObject(body)
+        val repo = (context.applicationContext as com.nanamy.launcher.NanamyApplication).settingsRepository
+
+        if (json.has("aiProvider")) repo.aiProvider = json.getString("aiProvider")
+        if (json.has("groqApiKey")) repo.groqApiKey = json.getString("groqApiKey")
+        if (json.has("geminiKeysJson")) repo.geminiKeysJson = json.getString("geminiKeysJson")
+        if (json.has("groqModel")) repo.groqModel = json.getString("groqModel")
+        if (json.has("systemPrompt")) repo.systemPrompt = json.getString("systemPrompt")
+        if (json.has("userPersonaPrompt")) repo.userPersonaPrompt = json.getString("userPersonaPrompt")
+        if (json.has("ttsSpeechRate")) repo.ttsSpeechRate = json.getDouble("ttsSpeechRate").toFloat()
+        if (json.has("ttsPitch")) repo.ttsPitch = json.getDouble("ttsPitch").toFloat()
+        if (json.has("themeMode")) repo.themeMode = json.getInt("themeMode")
+        if (json.has("eyesColor")) repo.eyesColor = json.getInt("eyesColor")
+        if (json.has("widgetMusicEnabled")) repo.widgetMusicEnabled = json.getBoolean("widgetMusicEnabled")
+        if (json.has("widgetWeatherEnabled")) repo.widgetWeatherEnabled = json.getBoolean("widgetWeatherEnabled")
+        if (json.has("widgetNotesEnabled")) repo.widgetNotesEnabled = json.getBoolean("widgetNotesEnabled")
+        if (json.has("widgetCalendarEnabled")) repo.widgetCalendarEnabled = json.getBoolean("widgetCalendarEnabled")
+        if (json.has("widgetMessagesEnabled")) repo.widgetMessagesEnabled = json.getBoolean("widgetMessagesEnabled")
+        if (json.has("localLlmEnabled")) repo.localLlmEnabled = json.getBoolean("localLlmEnabled")
+        if (json.has("localLlmModelPath")) repo.localLlmModelPath = json.getString("localLlmModelPath")
+        if (json.has("restModeHotword")) repo.restModeHotword = json.getString("restModeHotword")
+        if (json.has("restModeVolume")) repo.restModeVolume = json.getInt("restModeVolume")
+        if (json.has("restModeHandsFreeEnabled")) repo.restModeHandsFreeEnabled = json.getBoolean("restModeHandsFreeEnabled")
+        if (json.has("widgetOrderJson")) repo.widgetOrderJson = json.getString("widgetOrderJson")
+
+        okResponse()
+    } catch (e: Exception) {
+        errorResponse("Error updating settings: ${e.message}")
+    }
+
+    private fun handleNotificationRelay(session: IHTTPSession): Response = try {
+        val body = readPostBody(session)
+        val json = JSONObject(body)
+        val pkg = json.optString("packageName", "remote.device")
+        val sender = json.optString("senderName", json.optString("appName", "Remote Phone"))
+        val text = json.optString("messageText", json.optString("text", ""))
+        val ts = json.optLong("timestamp", System.currentTimeMillis())
+
+        if (text.isNotBlank()) {
+            val db = com.nanamy.launcher.db.NanamyDatabase.getInstance(context)
+            val entity = com.nanamy.launcher.db.MessageEntity(
+                convKey = "$pkg|$sender",
+                packageName = pkg,
+                senderName = sender,
+                messageText = text,
+                timestamp = ts,
+                isOutgoing = false,
+                isReplied = false,
+                dismissed = false
+            )
+            runBlocking { db.messageDao().insertMessage(entity) }
+            Log.d("NanamyConnectRelay", "Notification relayed from $sender: '$text'")
+        }
+        okResponse()
+    } catch (e: Exception) {
+        errorResponse("Error relaying notification: ${e.message}")
+    }
+
+    private fun handleControlAction(session: IHTTPSession): Response = try {
+        val body = readPostBody(session)
+        val json = JSONObject(body)
+        val action = json.optString("action", "")
+
+        when (action) {
+            "PING" -> jsonResponse(JSONObject().put("status", "PONG").put("device", android.os.Build.MODEL))
+            "MEDIA_PLAY_PAUSE" -> {
+                val am = context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+                am.dispatchMediaKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE))
+                am.dispatchMediaKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE))
+                okResponse()
+            }
+            else -> okResponse()
+        }
+    } catch (e: Exception) {
+        errorResponse("Control error: ${e.message}")
+    }
 
     private fun getMimeTypeFromFileName(f: String): String {
         val e = f.substringAfterLast('.', "").lowercase()
